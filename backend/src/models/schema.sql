@@ -1,4 +1,4 @@
-CREATE TABLE IF NOTE EXISTS summaries (
+CREATE TABLE IF NOT EXISTS summaries (
     id SERIAL PRIMARY KEY,
     video_id VARCHAR(255) NOT NULL UNIQUE,
     video_url TEXT NOT NULL,

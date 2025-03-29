@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import axios from "axios";
-const FileUploader = ({ onFileUplaod }) => {
+
+const FileUploader = ({ onFileUpload }) => {
+  // Fixed spelling of prop name
   const [file, setFile] = useState(null);
 
   const handleFileChange = (e) => {
-    setFile(e.target.files(0)); // Get the selected file
+    setFile(e.target.files[0]); // Fixed: using brackets instead of parentheses
   };
 
   const handleUpload = async () => {
@@ -14,18 +16,19 @@ const FileUploader = ({ onFileUplaod }) => {
 
       try {
         // Make the POST request to upload the file
-        const reponse = await axios.post(
+        const response = await axios.post(
+          // Fixed variable spelling
           "http://localhost:5000/upload",
           formData,
           {
             headers: {
-              "Content-Type": "mulipart/form-data",
+              "Content-Type": "multipart/form-data", // Fixed spelling
             },
           }
         );
 
         // Pass the summary from the response to the parent component
-        onFileUplaod(reponse.data.summary);
+        onFileUpload(response.data.summary); // Fixed prop name spelling
       } catch (error) {
         console.error("Error uploading file:", error);
       }
@@ -41,3 +44,5 @@ const FileUploader = ({ onFileUplaod }) => {
     </div>
   );
 };
+
+export default FileUploader;
