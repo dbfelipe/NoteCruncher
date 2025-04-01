@@ -47,8 +47,8 @@ const processVideo = async (req, res) => {
 
     //Get video details
     const videoInfo = await ytdl.getInfo(url);
-    const videoTitle = info.videoDetails.title;
-    const videoId = info.videoDetails.videoId;
+    const videoTitle = videoInfo.videoDetails.title;
+    const videoId = videoInfo.videoDetails.videoId;
 
     //Here I need to implement my actaul transcription and summarization logic
     //For now ill just create a placeholder summary
