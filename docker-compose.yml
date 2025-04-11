@@ -1,4 +1,4 @@
-ersion: "3"
+version: "3"
 
 services:
   # PostgreSQL Database
@@ -12,6 +12,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./backend/src/models/schema.sql:/docker-entrypoint-initdb.d/schema.sql
 
   # Backend API
   backend:
@@ -33,6 +34,15 @@ services:
     volumes:
       - ./backend:/app
       - /app/node_modules
+
+  transcriber:
+    build:
+      context: ./transcriber
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./transcriber:/app
 
 volumes:
   postgres_data:
