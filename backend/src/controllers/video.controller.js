@@ -1,4 +1,7 @@
 const ytdl = require("ytdl-core");
+const fs = require("fs");
+const path = require("path");
+const axios = require("axios");
 
 //Function to get all summaries from the database
 const getAllSummaries = async (req, res) => {
@@ -69,6 +72,7 @@ const processVideo = async (req, res) => {
     res.status(500).json({ error: "Failed to proces video" });
   }
 };
+
 module.exports = {
   getAllSummaries,
   getSummaryById,
