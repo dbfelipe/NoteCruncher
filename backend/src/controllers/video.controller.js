@@ -2,6 +2,7 @@ const ytdl = require("ytdl-core");
 const fs = require("fs");
 const path = require("path");
 const axios = require("axios");
+const FormData = require("form-data");
 
 //Function to get all summaries from the database
 const getAllSummaries = async (req, res) => {
@@ -62,7 +63,7 @@ const processVideo = async (req, res) => {
     const db = req.app.locals.db;
     const result = await db.query(
       "INSERT INTO summaries (video_id, video_url, title, summary) VALUES ($1, $2, $3, $4) RETURNING *"[
-        (videoId, url, videoTitle, placeholderSummary)
+        [videoId, url, videoTitle, placeholderSummary]
       ]
     );
 
@@ -73,8 +74,46 @@ const processVideo = async (req, res) => {
   }
 };
 
+//Function to handle upload audio/video file
+
+// Handle file upload (audio/video)
+const uploadFile = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    const filePath = path.join(__dirname, "..", req.file.path);
+    form.append("file", fs.createReadStream(filePath));
+
+    const response = await axios.post(
+      "http://localhost:8000/transcribe",
+      form,
+      {
+        headers: form.getHeaders(),
+      }
+    );
+
+    const transcript = response.data.transcript;
+
+    const placeholderSummary = `Transcript: ${transcript.slice(0, 200)}...`;
+
+    const db = req.app.locals.db;
+    const result = await db.query(
+      "INSERT INTO summaries (title, summary, transcript) VALUES ($1, $2, $3) RETURNING *",
+      ["Uploaded File", placeholderSummary, transcript]
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error("Error uploading file:", error);
+    res.status(500).json({ error: "Failed to process file upload" });
+  }
+};
+
 module.exports = {
   getAllSummaries,
   getSummaryById,
   processVideo,
+  uploadFile,
 };
