@@ -10,4 +10,7 @@ COPY . .
 
 EXPOSE 3001
 
+# Ensure uploads folder exists in container
+RUN mkdir -p uploads
+
 CMD ["npm", "run", "start"]
