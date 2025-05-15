@@ -84,8 +84,11 @@ const uploadFile = async (req, res) => {
     }
 
     const filePath = path.join(__dirname, "..", req.file.path);
+
+    const form = new FormData();
     form.append("file", fs.createReadStream(filePath));
 
+    // Whisper Transcription
     const response = await axios.post(
       "http://localhost:8000/transcribe",
       form,
@@ -96,17 +99,43 @@ const uploadFile = async (req, res) => {
 
     const transcript = response.data.transcript;
 
-    const placeholderSummary = `Transcript: ${transcript.slice(0, 200)}...`;
+    // OpenAI Summarization
+    const openaiResponse = await axios.post(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        model: "gpt-4",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a helpful assistant that summarizes lecture transcripts for students.",
+          },
+          {
+            role: "user",
+            content: `Summarize the following transcript in clear, concise study notes:\n\n${transcript}`,
+          },
+        ],
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
+    const summary = openaiResponse.data.choices[0].message.content;
+
+    // Save to database
     const db = req.app.locals.db;
     const result = await db.query(
       "INSERT INTO summaries (title, summary, transcript) VALUES ($1, $2, $3) RETURNING *",
-      ["Uploaded File", placeholderSummary, transcript]
+      ["Uploaded File", summary, transcript]
     );
 
     res.status(201).json(result.rows[0]);
   } catch (error) {
-    console.error("Error uploading file:", error);
+    console.error("Upload error:", error.response?.data || error.message);
     res.status(500).json({ error: "Failed to process file upload" });
   }
 };

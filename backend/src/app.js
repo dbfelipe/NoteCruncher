@@ -4,6 +4,7 @@ const helmet = require("helmet");
 const morgan = require("morgan");
 const { Pool } = require("pg");
 const videoRoutes = require("./routes/video.routes");
+require("dotenv").config();
 
 const app = express();
 
