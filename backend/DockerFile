@@ -1,16 +1,21 @@
-FROM  node:18
+FROM node:18
 
+# Set working directory to /app
 WORKDIR /app
 
+# Copy only package files first
 COPY package*.json ./
 
+# Install dependencies at root (so node_modules is at /app)
 RUN npm install
 
+# Copy all backend source code (including src/)
 COPY . .
+
+# Create uploads folder inside /app/src
+RUN mkdir -p src/uploads
 
 EXPOSE 3001
 
-# Ensure uploads folder exists in container
-RUN mkdir -p uploads
-
-CMD ["npm", "run", "start"]
+# Run the server (which is src/index.js per your npm start script)
+CMD ["npm", "start"]
