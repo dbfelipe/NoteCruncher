@@ -1,11 +1,17 @@
-//middleware/upload.middleware.js
 const multer = require("multer");
+const fs = require("fs");
 const path = require("path");
 
-// Store files in /uploads
+// Force path to /app/uploads inside container
+const uploadDir = "/app/uploads";
+
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "uploads/");
+    cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
@@ -13,6 +19,4 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage: storage });
-
-module.exports = upload;
+module.exports = multer({ storage });
