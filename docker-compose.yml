@@ -33,6 +33,7 @@ services:
       - postgres
     volumes:
       - ./backend:/app
+      - ./backend/uploads:/app/uploads
       - /app/node_modules
 
   transcriber:
