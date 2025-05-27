@@ -2,45 +2,53 @@ import React, { useState } from "react";
 import axios from "axios";
 
 const FileUploader = ({ onFileUpload }) => {
-  // Fixed spelling of prop name
   const [file, setFile] = useState(null);
+  const [status, setStatus] = useState("");
 
   const handleFileChange = (e) => {
-    setFile(e.target.files[0]); // Fixed: using brackets instead of parentheses
+    setFile(e.target.files[0]);
   };
 
   const handleUpload = async () => {
-    if (file) {
-      const formData = new FormData();
-      formData.append("file", file);
+    if (!file) {
+      setStatus("Please select a file.");
+      return;
+    }
 
-      try {
-        // Make the POST request to upload the file
-        const response = await axios.post(
-          // Fixed variable spelling
-          "http://localhost:5000/upload",
-          formData,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data", // Fixed spelling
-            },
-          }
-        );
+    const formData = new FormData();
+    formData.append("file", file);
 
-        // Pass the summary from the response to the parent component
-        onFileUpload(response.data.summary); // Fixed prop name spelling
-      } catch (error) {
-        console.error("Error uploading file:", error);
-      }
-    } else {
-      console.error("Please select a file first!");
+    setStatus("Uploading and processing...");
+
+    try {
+      const response = await axios.post(
+        "http://localhost:3001/api/videos/upload",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      setStatus("Summary created!");
+
+      //Notidy parent to refresh summaries if needed
+      if (onUploadComplete) onUploadComplete(response.data);
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      setStatus("Upload failed");
     }
   };
 
   return (
-    <div>
-      <input type="file" onChange={handleFileChange} />
-      <button onClick={handleUpload}>Upload File</button>
+    <div style={{ margin: "2rem auto", maxWidth: 800 }}>
+      <h2>Upload Audio File</h2>
+      <input type="file" accept=".mp3" onChange={handleFileChange} />
+      <button onClick={handleUpload} style={{ marginLeft: "1rem" }}>
+        Upload
+      </button>
+      <p>{status}</p>
     </div>
   );
 };
