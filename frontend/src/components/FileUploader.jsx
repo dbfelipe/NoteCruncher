@@ -34,7 +34,7 @@ const FileUploader = ({ onFileUpload }) => {
       setStatus("Summary created!");
 
       //Notidy parent to refresh summaries if needed
-      if (onUploadComplete) onUploadComplete(response.data);
+      if (onFileUpload) onFileUpload(response.data);
     } catch (error) {
       console.error("Error uploading file:", error);
       setStatus("Upload failed");
