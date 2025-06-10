@@ -10,7 +10,7 @@ router.get("/", videoController.getAllSummaries);
 router.get("/:id", videoController.getSummaryById);
 
 //Process a new video URL
-router.post("/", videoController.processVideo);
+router.post("/youtube", videoController.processVideo);
 
 //Upload file
 router.post("/upload", upload.single("file"), videoController.uploadFile);

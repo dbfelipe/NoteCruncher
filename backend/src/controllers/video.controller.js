@@ -63,7 +63,7 @@ const processVideo = async (req, res) => {
     const db = req.app.locals.db;
     const result = await db.query(
       "INSERT INTO summaries (video_id, video_url, title, summary) VALUES ($1, $2, $3, $4) RETURNING *"[
-        [videoId, url, videoTitle, placeholderSummary]
+        (videoId, url, videoTitle, placeholderSummary)
       ]
     );
 

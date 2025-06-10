@@ -21,21 +21,33 @@ const SummaryList = () => {
 
   return (
     <div
-      style={{ maxWidth: 800, margin: "2rem auto", fontFamily: "sans-serif" }}
+      style={{
+        maxWidth: 800,
+        margin: "2rem auto",
+        fontFamily: "sans-serif",
+      }}
     >
       <h1>NoteCrunch Summaries</h1>
       {summaries.length === 0 ? (
         <p>No summaries found.</p>
       ) : (
-        summaries.map((item) => (
-          <div
-            key={item.id}
-            style={{ borderBottom: "1px solid #ccc", padding: "1rem 0" }}
-          >
-            <h3>{item.title}</h3>
-            <p>{item.summary}</p>
-          </div>
-        ))
+        <div
+          style={{
+            maxHeight: "500px",
+            overflowY: "auto",
+            paddingRight: "1rem",
+          }}
+        >
+          {summaries.map((item) => (
+            <div
+              key={item.id}
+              style={{ borderBottom: "1px solid #ccc", padding: "1rem 0" }}
+            >
+              <h3>{item.title}</h3>
+              <p>{item.summary}</p>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
