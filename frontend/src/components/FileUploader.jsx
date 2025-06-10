@@ -8,6 +8,17 @@ const FileUploader = ({ onFileUpload }) => {
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
   };
+  const [youtubeUrl, setYoutubeUrl] = useState("");
+  const formData = newFormData();
+
+  if (youtubeUrl) {
+    formData.append("youtubeUrl", youtubeUrl);
+  } else if (file) {
+    formData.append("file", file);
+  } else {
+    setStatus("Please select a file or enter a Youtube link.");
+    return;
+  }
 
   const handleUpload = async () => {
     if (!file) {
@@ -49,6 +60,14 @@ const FileUploader = ({ onFileUpload }) => {
         Upload
       </button>
       <p>{status}</p>
+      <h3> Or paste Youtube Link </h3>
+      <input
+        type="text"
+        placeholder="https://youtube.com/watch?v=..."
+        value={youtubeUrl}
+        onChange={(e) => setYoutubeUrl(e.target.value)}
+        style={{ width: "100%", marginBottom: "1rem", padding: "0.5rem" }}
+      />
     </div>
   );
 };
