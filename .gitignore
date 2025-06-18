@@ -8,3 +8,5 @@ frontend/.env
 
 # Database
 backend/data/
+
+.env.env
