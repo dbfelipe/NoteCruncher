@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 
 // Force path to /app/uploads inside container
-const uploadDir = "/app/uploads";
+const uploadDir = path.join(__dirname, "..", "uploads");
 
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });

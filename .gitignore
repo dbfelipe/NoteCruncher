@@ -9,4 +9,16 @@ frontend/.env
 # Database
 backend/data/
 
-.env.env
+
+.env
+/frontend/.env
+/backend/.env
+
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+transcriber/venv/
+transcriber/.env
+backend/uploads/

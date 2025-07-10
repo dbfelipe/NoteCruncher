@@ -83,14 +83,14 @@ const uploadFile = async (req, res) => {
       return res.status(400).json({ error: "No file uploaded" });
     }
 
-    const filePath = path.join("/app/uploads", req.file.filename);
+    const filePath = path.join(__dirname, "..", "uploads", req.file.filename);
 
     const form = new FormData();
     form.append("file", fs.createReadStream(filePath));
 
     // Whisper Transcription
     const response = await axios.post(
-      "http://transcriber:8000/transcribe",
+      "http://localhost:5001/transcribe",
       form,
       {
         headers: form.getHeaders(),
