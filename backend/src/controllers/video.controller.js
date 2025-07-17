@@ -112,7 +112,7 @@ const uploadFile = async (req, res) => {
           },
           {
             role: "user",
-            content: `Summarize the following transcript in clear, concise study notes:\n\n${transcript}`,
+            content: `Summarize the following transcript in clear, concise study notes make sure the summary covers most all topics discussed, dont be too brief:\n\n${transcript}`,
           },
         ],
       },

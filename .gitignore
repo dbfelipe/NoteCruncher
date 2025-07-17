@@ -22,3 +22,4 @@ __pycache__/
 transcriber/venv/
 transcriber/.env
 backend/uploads/
+backend/src/uploads
