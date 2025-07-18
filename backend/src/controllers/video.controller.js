@@ -38,6 +38,7 @@ const getSummaryById = async (req, res) => {
 
 //Function to process a video URL
 const processVideo = async (req, res) => {
+  console.log("[DEBUG] req.body:", req.body);
   const { url } = req.body;
   if (!url) {
     return res.status(400).json({ error: "Video URL is required" });
@@ -48,25 +49,64 @@ const processVideo = async (req, res) => {
     if (!isValid) {
       return res.status(400).json({ error: "Invalid YouTube URL" });
     }
-
     //Get video details
     const videoInfo = await ytdl.getInfo(url);
     const videoTitle = videoInfo.videoDetails.title;
     const videoId = videoInfo.videoDetails.videoId;
 
-    //Here I need to implement my actaul transcription and summarization logic
-    //For now ill just create a placeholder summary
-    const placeholderSummary =
-      "This is a placeholder summary for ${videoTitle}. In a real implentation you would process the audio transcribe it and generate a summary";
+    //Defining where to save the file
+    const outputPath = path.join(__dirname, "..", "uploads", `${videoId}.mp3`);
+    //Start downloading the audio only stream from youtube to that location
+    const audioStream = ytdl(url, { filter: "audioonly" });
+    const writeStream = fs.createWriteStream(outputPath);
+
+    //Promise pauses the function (await) until the audio is fully written — and only then does it move on to the transcription step.
+    await new Promise((resolve, reject) => {
+      audioStream.pipe(writeStream);
+      writeStream.on("finish", resolve);
+      writeStream.on("error", reject);
+    });
+
+    //Creates a multipart/form-data payload with the downloaded file, to send to the FastAPI transcribe
+    const form = new FormData();
+    form.append("file", fs.createReadStream(outputPath));
+
+    //sending the audion file to our FastAPI Whisper service
+    const response = await axios.post(
+      "http://localhost:5001/transcribe",
+      form,
+      {
+        headers: form.getHeaders(),
+      }
+    );
+    //recieves transcript
+    const transcript = response.data.transcript;
+
+    const openaiResponse = await axios.post(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        model: "gpt-3.5-turbo",
+        messages: [
+          { role: "system", content: "You are a helpful assistant..." },
+          { role: "user", content: `Summarize the following transcript...` },
+        ],
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    const summary = openaiResponse.data.choices[0].message.content;
 
     //Store in the database
     const db = req.app.locals.db;
     const result = await db.query(
       "INSERT INTO summaries (video_id, video_url, title, summary) VALUES ($1, $2, $3, $4) RETURNING *"[
-        (videoId, url, videoTitle, placeholderSummary)
+        [videoId, url, videoTitle, summary, transcript]
       ]
     );
-
     res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error("Error processing video:", error);
@@ -75,7 +115,6 @@ const processVideo = async (req, res) => {
 };
 
 //Function to handle upload audio/video file
-
 // Handle file upload (audio/video)
 const uploadFile = async (req, res) => {
   try {
