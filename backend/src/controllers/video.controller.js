@@ -1,9 +1,9 @@
-const ytdl = require("ytdl-core");
 const fs = require("fs");
 const path = require("path");
 const axios = require("axios");
 const FormData = require("form-data");
-
+const { v4: uuidv4 } = require("uuid");
+const youtubedl = require("youtube-dl-exec");
 //Function to get all summaries from the database
 const getAllSummaries = async (req, res) => {
   try {
@@ -44,32 +44,28 @@ const processVideo = async (req, res) => {
     return res.status(400).json({ error: "Video URL is required" });
   }
   try {
-    //Check if the URL is a valid YouTube URL
-    const isValid = await ytdl.validateURL(url);
-    if (!isValid) {
-      return res.status(400).json({ error: "Invalid YouTube URL" });
+    //Create a unique ID to name the file
+    const videoId = uuidv4();
+    const uploadDir = path.join(__dirname, "..", "uploads");
+    const outputPath = path.join(uploadDir, `${videoId}.%(ext)s`); // 👈 notice %(ext)s
+    const actualOutputPath = path.join(uploadDir, `${videoId}.mp3`);
+
+    // Ensure uploads directory exists
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
     }
-    //Get video details
-    const videoInfo = await ytdl.getInfo(url);
-    const videoTitle = videoInfo.videoDetails.title;
-    const videoId = videoInfo.videoDetails.videoId;
 
-    //Defining where to save the file
-    const outputPath = path.join(__dirname, "..", "uploads", `${videoId}.mp3`);
-    //Start downloading the audio only stream from youtube to that location
-    const audioStream = ytdl(url, { filter: "audioonly" });
-    const writeStream = fs.createWriteStream(outputPath);
-
-    //Promise pauses the function (await) until the audio is fully written — and only then does it move on to the transcription step.
-    await new Promise((resolve, reject) => {
-      audioStream.pipe(writeStream);
-      writeStream.on("finish", resolve);
-      writeStream.on("error", reject);
+    const info = await youtubedl(url, {
+      extractAudio: true,
+      audioFormat: "mp3",
+      output: outputPath,
+      dumpSingleJson: true,
     });
 
+    const videoTitle = info.title || `YouTube Audio (${videoId})`;
     //Creates a multipart/form-data payload with the downloaded file, to send to the FastAPI transcribe
     const form = new FormData();
-    form.append("file", fs.createReadStream(outputPath));
+    form.append("file", fs.createReadStream(actualOutputPath));
 
     //sending the audion file to our FastAPI Whisper service
     const response = await axios.post(

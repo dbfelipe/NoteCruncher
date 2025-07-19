@@ -10,32 +10,19 @@ const FileUploader = ({ onFileUpload }) => {
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
   };
-  // const [youtubeUrl, setYoutubeUrl] = useState("");
-  // const formData = new FormData();
-
-  // if (youtubeUrl) {
-  //   formData.append("youtubeUrl", youtubeUrl);
-  // } else if (file) {
-  //   formData.append("file", file);
-  // } else {
-  //   setStatus("Please select a file or enter a Youtube link.");
-  //   return;
-  // }
 
   const handleUpload = async () => {
     const formData = new FormData();
     let endpoint = "";
 
     if (youtubeUrl) {
-      formData.append("youtubeUrl", youtubeUrl);
+      formData.append("url", youtubeUrl); // must match `req.body.url` in backend
+      endpoint = "http://localhost:3001/api/videos/youtube";
     } else if (file) {
       formData.append("file", file);
+      endpoint = "http://localhost:3001/api/videos/upload";
     } else {
-      setStatus("Please select a file or enter a Youtube link.");
-      return;
-    }
-    if (!file) {
-      setStatus("Please select a file.");
+      setStatus("Please select a file or enter a YouTube link.");
       return;
     }
 
@@ -43,7 +30,6 @@ const FileUploader = ({ onFileUpload }) => {
     setUploading(true);
     setProgress(0);
 
-    //fake progress bar
     const progressInterval = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 90) {
@@ -55,23 +41,19 @@ const FileUploader = ({ onFileUpload }) => {
     }, 400);
 
     try {
-      const response = await axios.post(
-        "http://localhost:3001/api/videos/upload",
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
+      const response = await axios.post(endpoint, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
       setProgress(100);
       setTimeout(() => setUploading(false), 500);
       setStatus("Summary created!");
 
-      //Notidy parent to refresh summaries if needed
       if (onFileUpload) onFileUpload(response.data);
     } catch (error) {
-      console.error("Error uploading file:", error);
+      console.error("Error uploading file or link:", error);
       setStatus("Upload failed");
       clearInterval(progressInterval);
       setUploading(false);
