@@ -58,7 +58,8 @@ const processVideo = async (req, res) => {
     const info = await youtubedl(url, {
       extractAudio: true,
       audioFormat: "mp3",
-      output: outputPath,
+      paths: { home: uploadDir }, // tells yt-dlp where to save
+      output: `${videoId}.%(ext)s`, // filename format (relative to paths.home)
       dumpSingleJson: true,
     });
 

@@ -2,7 +2,7 @@ from pathlib import Path
 
 # Define the content of the system design markdown
 
-system_design_md = """# 🧠 NoteCrunch System Design Overview
+system_design_md = """# NoteCrunch System Design Overview
 
 ## 🔍 Overview
 
@@ -10,9 +10,9 @@ NoteCrunch is a web application that allows users to upload `.mp3` files or past
 
 ---
 
-## 🧱 Architecture
+## Architecture
 
-### 🎛️ Frontend (React)
+### Frontend (React)
 
 - **Handles:** User interaction, file uploads, YouTube URL input
 - **Key Features:**
@@ -21,7 +21,7 @@ NoteCrunch is a web application that allows users to upload `.mp3` files or past
   - Summary display
 - **Port:** `3000`
 
-### 🔧 Backend (Express.js)
+### Backend (Express.js)
 
 - **Handles:** API routing, file handling, DB interaction, external API calls
 - **Endpoints:**
@@ -33,11 +33,12 @@ NoteCrunch is a web application that allows users to upload `.mp3` files or past
   - `youtube-dl-exec` for YouTube audio extraction
 - **Port:** `3001`
 
-### 🧠 Transcriber (FastAPI)
+### Transcriber (FastAPI)
 
 - **Handles:** Whisper-based transcription
 - **Endpoint:** `POST /transcribe`
 - **Port:** `5001`
+- **source venv/bin/activate, uvicorn main:app --host 0.0.0.0 --port 5001 --reload**
 
 ---
 
