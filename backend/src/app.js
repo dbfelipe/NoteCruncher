@@ -4,6 +4,7 @@ const helmet = require("helmet");
 const morgan = require("morgan");
 const { Pool } = require("pg");
 const videoRoutes = require("./routes/video.routes");
+const flashcardRoutes = require("./routes/flashcard.routes");
 require("dotenv").config();
 
 const app = express();
@@ -26,6 +27,7 @@ const pool = new Pool({
 app.locals.db = pool;
 //Routes
 app.use("/api/videos", videoRoutes);
+app.use("/api/flashcards", flashcardRoutes);
 
 //Health check endpoint
 app.get("/health", (req, res) => {
