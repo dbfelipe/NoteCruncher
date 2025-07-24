@@ -13,8 +13,6 @@ function App() {
 
   return (
     <div>
-      <FileUploader onFileUpload={handleFileUpload} />
-      <SummaryList key={refreshKey} />
       <ManualFlashcardBuilder />
     </div>
   );
