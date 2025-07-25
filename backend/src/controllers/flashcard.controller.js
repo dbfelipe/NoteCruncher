@@ -2,7 +2,7 @@ const getAllFlashcards = async (req, res) => {
   try {
     const db = req.app.locals.db;
     const result = await db.query(
-      "SELECT * FROM summaries ORDER BY created_at DESC"
+      "SELECT * FROM flashcards ORDER BY created_at DESC"
     );
     res.json(result.rows);
   } catch (error) {
@@ -48,10 +48,14 @@ const updateFlashcard = async (req, res) => {
 };
 
 const deleteFlashcard = async (req, res) => {
+  console.log("DELETE /api/flashcards/:id hit with", req.params.id); // 👈 add this
   try {
     const { id } = req.params;
     const db = req.app.locals.db;
-    await db.query("DELETE FROM flashcards WHERE id = $1", [id]);
+    const result = await db.query(
+      "DELETE FROM flashcards WHERE id = $1 RETURNING *",
+      [id]
+    );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Flashcard not found" });
     }

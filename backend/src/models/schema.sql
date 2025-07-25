@@ -7,13 +7,12 @@ CREATE TABLE IF NOT EXISTS summaries (
     transcript TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX IF NOT EXISTS idx_video_id ON summaries (video_id);
+
 CREATE TABLE IF NOT EXISTS flashcards(
     id SERIAL PRIMARY KEY,
     question TEXT NOT NULL,
     answer TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)
-
--- Index for faster video_id lookups
-CREATE INDEX IF NOT EXISTS idx_video_id ON summaries (video_id);
+);

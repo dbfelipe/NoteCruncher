@@ -14,6 +14,7 @@ function ManualFlashcardBuilder() {
           "http://localhost:3001/api/flashcards"
         );
         setFlashcards(response.data);
+        console.log("Fetched flashcards:", response.data);
       } catch (error) {
         console.error("Error fetching flashcards:", error);
       }
@@ -41,6 +42,7 @@ function ManualFlashcardBuilder() {
 
   const handleDelete = async (id) => {
     try {
+      console.log(id);
       await axios.delete(`http://localhost:3001/api/flashcards/${id}`);
       setFlashcards(flashcards.filter((card) => card.id !== id));
     } catch (error) {
