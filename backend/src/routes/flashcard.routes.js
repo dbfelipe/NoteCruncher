@@ -10,4 +10,6 @@ router.put("/:id", flashcardController.updateFlashcard);
 
 router.delete("/:id", flashcardController.deleteFlashcard);
 
+router.post("/generate", flashcardController.generateFlashcardsFromText);
+
 module.exports = router;
