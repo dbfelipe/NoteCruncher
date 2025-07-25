@@ -1,3 +1,5 @@
+const { OpenAI } = require("openai");
+
 const getAllFlashcards = async (req, res) => {
   try {
     const db = req.app.locals.db;
@@ -66,9 +68,72 @@ const deleteFlashcard = async (req, res) => {
   }
 };
 
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const generateFlashcardsFromText = async (req, res) => {
+  const { text } = req.body;
+
+  if (!text || text.trim().length === 0) {
+    return res.status(400).json({ error: "Transcript or notes required." });
+  }
+  try {
+    const systemPrompt = `
+You are a helpful assistant that generates flashcards for students from lecture notes or transcripts.
+Return a JSON array like:
+[
+  { "question": "What is ...?", "answer": "..." },
+  ...
+]
+Each flashcard should be concise, relevant, and fact-based.
+`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: text },
+      ],
+      temperature: 0.3,
+    });
+
+    const rawContent = completion.choices[0].message.content;
+
+    let flashcards;
+    try {
+      flashcards = JSON.parse(rawContent);
+    } catch (err) {
+      console.error("Failed to parse flashcard JSON:", rawContent);
+      return res
+        .status(500)
+        .json({ error: "Invalid flashcard format from LLM." });
+    }
+
+    const isValid =
+      Array.isArray(flashcards) &&
+      flashcards.every(
+        (card) =>
+          typeof card.question === "string" && typeof card.answer === "string"
+      );
+
+    if (!isValid) {
+      return res
+        .status(400)
+        .json({ error: "Generated flashcards are not in the correct format." });
+    }
+
+    res.status(200).json({ flashcards });
+  } catch (err) {
+    console.error("Flashcard generation failed:", err);
+    res.status(500).json({ error: "Failed to generate flashcards." });
+  }
+};
+
 module.exports = {
   getAllFlashcards,
   createFlashcard,
   updateFlashcard,
   deleteFlashcard,
+  generateFlashcardsFromText,
 };
