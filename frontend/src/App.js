@@ -14,8 +14,9 @@ function App() {
 
   return (
     <div>
-      <ManualFlashcardBuilder />
       <GenerateFromText />
+      <FileUploader />
+      <ManualFlashcardBuilder />
     </div>
   );
 }

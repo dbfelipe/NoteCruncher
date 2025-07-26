@@ -4,6 +4,8 @@ const axios = require("axios");
 const FormData = require("form-data");
 const { v4: uuidv4 } = require("uuid");
 const youtubedl = require("youtube-dl-exec");
+const { generateFlashcards } = require("./flashcard.controller");
+
 //Function to get all summaries from the database
 const getAllSummaries = async (req, res) => {
   try {
@@ -79,35 +81,23 @@ const processVideo = async (req, res) => {
     //recieves transcript
     const transcript = response.data.transcript;
 
-    const openaiResponse = await axios.post(
-      "https://api.openai.com/v1/chat/completions",
-      {
-        model: "gpt-3.5-turbo",
-        messages: [
-          { role: "system", content: "You are a helpful assistant..." },
-          { role: "user", content: `Summarize the following transcript...` },
-        ],
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-    const summary = openaiResponse.data.choices[0].message.content;
-
-    //Store in the database
-    const db = req.app.locals.db;
-    const result = await db.query(
-      "INSERT INTO summaries (video_id, video_url, title, summary) VALUES ($1, $2, $3, $4) RETURNING *"[
-        [videoId, url, videoTitle, summary, transcript]
-      ]
-    );
-    res.status(201).json(result.rows[0]);
+    //Generate flashcards from transcript
+    let flashcards;
+    try {
+      flashcards = await generateFlashcards(transcript);
+    } catch (err) {
+      console.error("Failed to generate flashcards:", err);
+      return res.status(500).json({ error: "Flashcard generation failed." });
+    }
+    res.status(200).json({
+      source: "youtube",
+      title: videoTitle,
+      transcript,
+      flashcards,
+    });
   } catch (error) {
     console.error("Error processing video:", error);
-    res.status(500).json({ error: "Failed to proces video" });
+    res.status(500).json({ error: "Failed to process video." });
   }
 };
 

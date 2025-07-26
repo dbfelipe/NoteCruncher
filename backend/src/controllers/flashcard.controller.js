@@ -1,4 +1,38 @@
 const { OpenAI } = require("openai");
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const generateFlashcards = async (text) => {
+  const systemPrompt = `
+You are a helpful assistant that generates flashcards for students from lecture notes or transcripts.
+Return a JSON array like:
+[
+  { "question": "What is ...?", "answer": "..." }
+]
+Try to keep the number of flashcards proportional to the amount of content.
+For example:
+- ~100 words → 2-4 cards
+- ~300 words → 5–10 cards
+- ~800+ words → 15–25 cards
+
+Each flashcard should be concise, relevant, and fact-based.
+Only return the JSON array.
+`;
+
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4",
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: text },
+    ],
+    temperature: 0.3,
+  });
+
+  const rawContent = completion.choices[0].message.content;
+
+  return JSON.parse(rawContent);
+};
 
 const getAllFlashcards = async (req, res) => {
   try {
@@ -68,52 +102,15 @@ const deleteFlashcard = async (req, res) => {
   }
 };
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 const generateFlashcardsFromText = async (req, res) => {
   const { text } = req.body;
 
   if (!text || text.trim().length === 0) {
     return res.status(400).json({ error: "Transcript or notes required." });
   }
+
   try {
-    const systemPrompt = `
-You are a helpful assistant that generates flashcards for students from lecture notes or transcripts.
-Return a JSON array like:
-[
-  { "question": "What is ...?", "answer": "..." },
-  ...
-]
-Try to keep the number of flashcards proportional to the amount of content.
-For example:
-- ~100 words → 2-4cards
-- ~300 words → 5–10 cards
-- ~800+ words → 15–25 cards
-Each flashcard should be concise, relevant, and fact-based. 
-`;
-
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: text },
-      ],
-      temperature: 0.3,
-    });
-
-    const rawContent = completion.choices[0].message.content;
-
-    let flashcards;
-    try {
-      flashcards = JSON.parse(rawContent);
-    } catch (err) {
-      console.error("Failed to parse flashcard JSON:", rawContent);
-      return res
-        .status(500)
-        .json({ error: "Invalid flashcard format from LLM." });
-    }
+    const flashcards = await generateFlashcards(text);
 
     const isValid =
       Array.isArray(flashcards) &&

@@ -7,6 +7,9 @@ const FileUploader = ({ onFileUpload }) => {
   const [status, setStatus] = useState("");
   const [progress, setProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
+  const [transcript, setTranscript] = useState("");
+  const [flashcards, setFlashcards] = useState([]);
+
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
   };
@@ -46,6 +49,18 @@ const FileUploader = ({ onFileUpload }) => {
           "Content-Type": "multipart/form-data",
         },
       });
+
+      const { transcript } = response.data;
+      setTranscript(transcript);
+
+      const flashRes = await axios.post(
+        "http://localhost:3001/api/flashcards/generate",
+        {
+          text: transcript,
+        }
+      );
+
+      setFlashcards(flashRes.data.flashcards);
 
       setProgress(100);
       setTimeout(() => setUploading(false), 500);
@@ -89,6 +104,63 @@ const FileUploader = ({ onFileUpload }) => {
               transition: "width 0.3s ease",
             }}
           />
+        </div>
+      )}
+      {transcript && (
+        <div>
+          <h3>Transcript</h3>
+          <pre style={{ whiteSpace: "pre-wrap" }}>{transcript}</pre>
+        </div>
+      )}
+
+      {Array.isArray(flashcards) && flashcards.length > 0 && (
+        <div style={{ marginTop: "2rem" }}>
+          <h3>Generated Flashcards</h3>
+          {flashcards.map((card, index) => (
+            <div
+              key={index}
+              style={{
+                border: "1px solid #ccc",
+                borderRadius: "8px",
+                padding: "1rem",
+                marginBottom: "1rem",
+              }}
+            >
+              <input
+                type="text"
+                value={card.question}
+                onChange={(e) => {
+                  const updated = [...flashcards];
+                  updated[index].question = e.target.value;
+                  setFlashcards(updated);
+                }}
+                style={{ width: "100%", marginBottom: "0.5rem" }}
+              />
+              <textarea
+                rows={3}
+                value={card.answer}
+                onChange={(e) => {
+                  const updated = [...flashcards];
+                  updated[index].answer = e.target.value;
+                  setFlashcards(updated);
+                }}
+                style={{ width: "100%" }}
+              />
+            </div>
+          ))}
+
+          <button
+            onClick={async () => {
+              await Promise.all(
+                flashcards.map((card) =>
+                  axios.post("http://localhost:3001/api/flashcards", card)
+                )
+              );
+              alert("Flashcards saved!");
+            }}
+          >
+            Save All Flashcards
+          </button>
         </div>
       )}
     </div>
