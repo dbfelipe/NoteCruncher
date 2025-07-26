@@ -76,3 +76,17 @@ CREATE TABLE summaries (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
+
+## GenerateFromText FLow
+
+[User pastes transcript]
+↓
+[GenerateFromText.jsx] --POST--> /api/flashcards/generate
+↓
+[Backend controller] → OpenAI → formatted JSON response
+↓
+[Frontend] receives flashcards → displays for review
+↓
+User clicks “Save All” → each card sent to /api/flashcards
+↓
+Stored in DB → Appears in ManualFlashcardBuilder

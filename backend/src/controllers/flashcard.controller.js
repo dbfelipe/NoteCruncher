@@ -86,7 +86,12 @@ Return a JSON array like:
   { "question": "What is ...?", "answer": "..." },
   ...
 ]
-Each flashcard should be concise, relevant, and fact-based.
+Try to keep the number of flashcards proportional to the amount of content.
+For example:
+- ~100 words → 2-4cards
+- ~300 words → 5–10 cards
+- ~800+ words → 15–25 cards
+Each flashcard should be concise, relevant, and fact-based. 
 `;
 
     const completion = await openai.chat.completions.create({
