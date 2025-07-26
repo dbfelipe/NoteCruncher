@@ -21,7 +21,7 @@ function GenerateFromText() {
       setFlashcards(res.data.flashcards);
     } catch (error) {
       setError("Failed to generate flashcards.");
-      console.error(err);
+      console.error(error);
     }
     setLoading(false);
   };
@@ -37,7 +37,7 @@ function GenerateFromText() {
       alert("Flashcards saved!");
     } catch (err) {
       setError("Failed to save flashcards.");
-      console.error(err);
+      console.error(error);
     }
     setSaving(false);
   };
