@@ -138,4 +138,5 @@ module.exports = {
   updateFlashcard,
   deleteFlashcard,
   generateFlashcardsFromText,
+  generateFlashcards,
 };

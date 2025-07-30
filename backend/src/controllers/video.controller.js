@@ -5,6 +5,7 @@ const FormData = require("form-data");
 const { v4: uuidv4 } = require("uuid");
 const youtubedl = require("youtube-dl-exec");
 const { generateFlashcards } = require("./flashcard.controller");
+const { execSync } = require("child_process");
 
 //Function to get all summaries from the database
 const getAllSummaries = async (req, res) => {
@@ -40,64 +41,80 @@ const getSummaryById = async (req, res) => {
 
 //Function to process a video URL
 const processVideo = async (req, res) => {
-  console.log("[DEBUG] req.body:", req.body);
   const { url } = req.body;
   if (!url) {
-    return res.status(400).json({ error: "Video URL is required" });
+    return res.status(400).json({ error: "YouTube URL is required." });
   }
-  try {
-    //Create a unique ID to name the file
-    const videoId = uuidv4();
-    const uploadDir = path.join(__dirname, "..", "uploads");
-    const outputPath = path.join(uploadDir, `${videoId}.%(ext)s`); // 👈 notice %(ext)s
-    const actualOutputPath = path.join(uploadDir, `${videoId}.mp3`);
 
-    // Ensure uploads directory exists
+  const videoId = uuidv4();
+  const uploadDir = path.join(__dirname, "..", "uploads");
+
+  try {
+    // 1. Ensure uploads directory exists
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
 
-    const info = await youtubedl(url, {
-      extractAudio: true,
-      audioFormat: "mp3",
-      paths: { home: uploadDir }, // tells yt-dlp where to save
-      output: `${videoId}.%(ext)s`, // filename format (relative to paths.home)
-      dumpSingleJson: true,
-    });
+    // 2. Download best audio using yt-dlp
+    await youtubedl(
+      url,
+      {
+        format: "bestaudio",
+        output: `${videoId}.%(ext)s`,
+        paths: { home: uploadDir },
+      },
+      { cwd: uploadDir }
+    ); // 👈 force yt-dlp to write here
+    console.log("[DEBUG] Upload dir:", uploadDir);
 
-    const videoTitle = info.title || `YouTube Audio (${videoId})`;
-    //Creates a multipart/form-data payload with the downloaded file, to send to the FastAPI transcribe
+    // 3. Find the downloaded file (.webm, .m4a, etc.)
+    const downloadedFile = fs
+      .readdirSync(uploadDir)
+      .find((f) => f.startsWith(videoId));
+    if (!downloadedFile) {
+      return res
+        .status(500)
+        .json({ error: "Failed to find downloaded audio file." });
+    }
+
+    const originalPath = path.join(uploadDir, downloadedFile);
+    const mp3Path = path.join(uploadDir, `${videoId}.mp3`);
+
+    // 4. Convert to .mp3 using ffmpeg
+    execSync(
+      `ffmpeg -i "${originalPath}" -vn -ar 44100 -ac 2 -b:a 192k "${mp3Path}"`
+    );
+
+    // 5. Transcribe audio using Whisper FastAPI
     const form = new FormData();
-    form.append("file", fs.createReadStream(actualOutputPath));
+    form.append("file", fs.createReadStream(mp3Path));
 
-    //sending the audion file to our FastAPI Whisper service
-    const response = await axios.post(
+    const whisperRes = await axios.post(
       "http://localhost:5001/transcribe",
       form,
       {
         headers: form.getHeaders(),
       }
     );
-    //recieves transcript
-    const transcript = response.data.transcript;
 
-    //Generate flashcards from transcript
-    let flashcards;
-    try {
-      flashcards = await generateFlashcards(transcript);
-    } catch (err) {
-      console.error("Failed to generate flashcards:", err);
-      return res.status(500).json({ error: "Flashcard generation failed." });
-    }
+    const transcript = whisperRes.data.transcript;
+
+    // 6. Generate flashcards with OpenAI
+    const flashcards = await generateFlashcards(transcript);
+
+    // 7. Clean up files
+    fs.unlinkSync(originalPath);
+    fs.unlinkSync(mp3Path);
+
+    // 8. Return result
     res.status(200).json({
       source: "youtube",
-      title: videoTitle,
       transcript,
       flashcards,
     });
-  } catch (error) {
-    console.error("Error processing video:", error);
-    res.status(500).json({ error: "Failed to process video." });
+  } catch (err) {
+    console.error("Error processing YouTube video:", err);
+    res.status(500).json({ error: "Failed to process YouTube video." });
   }
 };
 
