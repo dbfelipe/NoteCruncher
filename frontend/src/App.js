@@ -1,4 +1,4 @@
-import "./App.css";
+import "./index.css";
 import React, { useState } from "react";
 import SummaryList from "./components/SummaryList";
 import FileUploader from "./components/FileUploader";
@@ -14,6 +14,7 @@ function App() {
 
   return (
     <div>
+      <h1 className="text-7xl text-center text-blue-400">Hello world</h1>
       <GenerateFromText />
       <FileUploader />
       <ManualFlashcardBuilder />
