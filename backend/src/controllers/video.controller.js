@@ -64,7 +64,7 @@ const processVideo = async (req, res) => {
         paths: { home: uploadDir },
       },
       { cwd: uploadDir }
-    ); // 👈 force yt-dlp to write here
+    ); // force yt-dlp to write here
     console.log("[DEBUG] Upload dir:", uploadDir);
 
     // 3. Find the downloaded file (.webm, .m4a, etc.)
