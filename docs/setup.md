@@ -4,8 +4,6 @@ from pathlib import Path
 
 system_design_md = """# NoteCrunch System Design Overview
 
-## 🔍 Overview
-
 NoteCrunch is a web application that allows users to upload `.mp3` files or paste YouTube links to generate smart summaries (and soon, flashcards) using AI transcription and OpenAI summarization.
 
 ---
@@ -63,7 +61,7 @@ NoteCrunch is a web application that allows users to upload `.mp3` files or past
 
 ---
 
-## 🗃️ Database Schema (PostgreSQL)
+## Database Schema (PostgreSQL)
 
 ```sql
 CREATE TABLE summaries (
@@ -90,3 +88,12 @@ CREATE TABLE summaries (
 User clicks “Save All” → each card sent to /api/flashcards
 ↓
 Stored in DB → Appears in ManualFlashcardBuilder
+
+## Frontend Struct
+
+NavBar -
+MenuBar Logo "From notes" "From audio" "Manual"
+|
+Home
+|
+Flashcards

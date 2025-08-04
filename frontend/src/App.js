@@ -3,22 +3,28 @@ import React, { useState } from "react";
 import FileUploader from "./components/FileUploader";
 import ManualFlashcardBuilder from "./components/ManualFlashcardBuilder";
 import GenerateFromText from "./components/GenerateFromText";
+import Navbar from "./components/Navbar";
+import Sidebar from "./components/Sidebar";
+import { Routes, Route, Navigate } from "react-router-dom";
 
 function App() {
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  const handleFileUpload = () => {
-    setRefreshKey((prev) => +1);
-  };
+  const [sidebarOpen, setSidebarOpen] = React.useState(false);
 
   return (
-    <div>
-      <h1 className="text-5xl text-blue-500 underline text-center">
-        Hello world
-      </h1>
-      <GenerateFromText />
-      <FileUploader />
-      <ManualFlashcardBuilder />
+    <div className="flex flex-col h-screen">
+      <Navbar onMenuClick={() => setSidebarOpen(true)} />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+        <main className="flex-1 overflow-y-auto p-6 bg-gray-50">
+          <Routes>
+            <Route path="/" element={<Navigate to="/transcript" replace />} />
+            <Route path="/transcript" element={<GenerateFromText />} />
+            <Route path="/links" element={<FileUploader />} />
+            <Route path="/manual" element={<ManualFlashcardBuilder />} />
+          </Routes>
+        </main>
+      </div>
     </div>
   );
 }
