@@ -9,7 +9,7 @@ export default function Navbar({ onMenuClick }) {
 
   return (
     <nav className="bg-white border-b shadow-sm">
-      <div className="px-4 py-3 flex items-center justify-between md:pl-64">
+      <div className="w-full px-4 py-3 flex items-center justify-between">
         {/* Left Section */}
         <div className="flex items-center space-x-4">
           <button
