@@ -9,10 +9,15 @@ export default function Navbar({ onMenuClick }) {
 
   return (
     <nav className="bg-white border-b shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div className="px-4 py-3 flex items-center justify-between md:pl-64">
         {/* Left Section */}
         <div className="flex items-center space-x-4">
-          <Menu className="h-5 w-5 text-gray-500 cursor-pointer" />
+          <button
+            className="md:hidden text-gray-600 focus:outline-none"
+            onClick={onMenuClick}
+          >
+            <Menu className="h-5 w-5 text-gray-500 cursor-pointer" />
+          </button>
           <span className="font-bold text-xl tracking-tight">NoteCrunch</span>
         </div>
 
