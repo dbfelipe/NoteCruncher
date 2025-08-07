@@ -84,7 +84,7 @@ const updateFlashcard = async (req, res) => {
 };
 
 const deleteFlashcard = async (req, res) => {
-  console.log("DELETE /api/flashcards/:id hit with", req.params.id); // 👈 add this
+  console.log("DELETE /api/flashcards/:id hit with", req.params.id);
   try {
     const { id } = req.params;
     const db = req.app.locals.db;

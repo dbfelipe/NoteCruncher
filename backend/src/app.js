@@ -28,6 +28,7 @@ app.locals.db = pool;
 //Routes
 app.use("/api/videos", videoRoutes);
 app.use("/api/flashcards", flashcardRoutes);
+app.use("/api/folders", require("./routes/folder.routes"));
 
 //Health check endpoint
 app.get("/health", (req, res) => {
