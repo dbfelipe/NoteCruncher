@@ -10,6 +10,10 @@ export default function Sidebar({ isOpen, onClose }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
 
+  const [newFolderName, setNewFolderName] = useState("");
+  const [addingFolder, setAddingFolder] = useState(false);
+  const [addError, setAddError] = useState("");
+
   useEffect(() => {
     const fetchFolders = async () => {
       try {
@@ -22,6 +26,35 @@ export default function Sidebar({ isOpen, onClose }) {
     };
     fetchFolders();
   }, []);
+
+  const handleAddFolder = async (e) => {
+    //Stops the default form submit behavior so the page doesn’t reload when you press Enter or click “Add Folder.” The ?. just makes sure e exists before calling preventDefault()
+    e?.preventDefault();
+    const name = newFolderName.trim();
+    if (!name) {
+      setAddError("Folder name is required.");
+      return;
+    }
+    setAddingFolder(true);
+    setAddError("");
+    try {
+      const res = await axios.post("http://localhost:3001/api/folders", {
+        name,
+      });
+      // optimistic prepend (API returns the created folder row)
+      setFolders((prev) => [res.data, ...prev]);
+      setNewFolderName("");
+    } catch (err) {
+      if (err.response?.status === 409) {
+        setAddError("That folder already exists.");
+      } else {
+        setAddError("Failed to add folder. Try again.");
+      }
+      console.error("Add folder error:", err);
+    } finally {
+      setAddingFolder(false);
+    }
+  };
 
   const handleDelete = async (folderId) => {
     const res = await axios.get(
@@ -52,16 +85,33 @@ export default function Sidebar({ isOpen, onClose }) {
       {/* Desktop Sidebar */}
       <aside className="w-64 bg-white border-r px-4 py-6 hidden md:block">
         <h2 className="text-lg font-semibold mb-4">Saved Flashcards</h2>
+        <form onSubmit={handleAddFolder} className="mb-4 space-y-2">
+          <input
+            type="text"
+            value={newFolderName}
+            onChange={(e) => setNewFolderName(e.target.value)}
+            placeholder="New folder name"
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          {addError ? <p className="text-red-600 text-xs">{addError}</p> : null}
+          <button
+            type="submit"
+            disabled={addingFolder}
+            className="w-full bg-blue-600 text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-60"
+          >
+            {addingFolder ? "Adding..." : "Add Folder"}
+          </button>
+        </form>
         <ul className="space-y-2">
           {folders.map((folder) => (
             <li
               key={folder.id}
-              className="flex justify-between items-center text-gray-700 hover:text-blue-600"
+              className="flex justify-between items-center text-gray-700 hover:text-blue-600 group"
             >
               <span className="cursor-pointer">{folder.name}</span>
               <button
                 onClick={() => handleDelete(folder.id)}
-                className="text-red-500 hover:text-red-700 text-sm"
+                className="text-red-500 hover:text-red-700 text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200"
               >
                 ✕
               </button>
@@ -131,16 +181,36 @@ export default function Sidebar({ isOpen, onClose }) {
               </li>
             </ul>
             <h2 className="text-lg font-semibold mb-4">Saved Flashcards</h2>
+            <form onSubmit={handleAddFolder} className="mb-4 space-y-2">
+              <input
+                type="text"
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                placeholder="New folder name"
+                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {addError ? (
+                <p className="text-red-600 text-xs">{addError}</p>
+              ) : null}
+              <button
+                type="submit"
+                disabled={addingFolder}
+                className="w-full bg-blue-600 text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-60"
+              >
+                {addingFolder ? "Adding..." : "Add Folder"}
+              </button>
+            </form>
+
             <ul className="space-y-2">
               {folders.map((folder) => (
                 <li
                   key={folder.id}
-                  className="flex justify-between items-center text-gray-700 hover:text-blue-600"
+                  className="flex justify-between items-center text-gray-700 hover:text-blue-600 group"
                 >
                   <span className="cursor-pointer">{folder.name}</span>
                   <button
                     onClick={() => handleDelete(folder.id)}
-                    className="text-red-500 hover:text-red-700 text-sm"
+                    className="text-red-500 hover:text-red-700 text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                   >
                     ✕
                   </button>
