@@ -29,7 +29,7 @@ export default function Navbar({ onMenuClick }) {
               `${navItem} ${isActive ? active : inactive}`
             }
           >
-            From Transcript
+            From Notes
           </NavLink>
           <NavLink
             to="/links"
@@ -37,7 +37,7 @@ export default function Navbar({ onMenuClick }) {
               `${navItem} ${isActive ? active : inactive}`
             }
           >
-            From Links / Files
+            From Youtube / Media
           </NavLink>
           <NavLink
             to="/manual"
