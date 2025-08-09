@@ -40,10 +40,13 @@ const getFlashcardsInFolder = async (req, res) => {
     const db = req.app.locals.db;
 
     const result = await db.query(
-      "SELECT * FROM flashcards WHERE folder_id = $1 ORDER BY created_at DESC",
+      `SELECT fc.*
+         FROM flashcards fc
+         JOIN sets s ON fc.set_id = s.id
+        WHERE s.folder_id = $1
+        ORDER BY fc.created_at DESC`,
       [id]
     );
-
     res.status(200).json(result.rows);
   } catch (error) {
     console.error("Error fetching flashcards in folder:", error);
