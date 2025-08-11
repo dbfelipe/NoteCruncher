@@ -6,6 +6,7 @@ const { Pool } = require("pg");
 const videoRoutes = require("./routes/video.routes");
 const flashcardRoutes = require("./routes/flashcard.routes");
 const folderRoutes = require("./routes/folder.routes");
+const setRoutes = require("./routes/set.routes");
 
 require("dotenv").config();
 
@@ -31,6 +32,7 @@ app.locals.db = pool;
 app.use("/api/videos", videoRoutes);
 app.use("/api/flashcards", flashcardRoutes);
 app.use("/api/folders", folderRoutes);
+app.use("/api/sets", setRoutes);
 
 //Health check endpoint
 app.get("/health", (req, res) => {
