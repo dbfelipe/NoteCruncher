@@ -4,7 +4,7 @@ from pathlib import Path
 
 system_design_md = """# NoteCrunch System Design Overview
 
-NoteCrunch is a web application that allows users to upload `.mp3` files or paste YouTube links to generate smart summaries (and soon, flashcards) using AI transcription and OpenAI summarization.
+NoteCrunch is a web application that allows users to upload `.mp3` files or paste YouTube links to generate quizlet style flashcards using AI transcription and OpenAI summarization.
 
 ---
 
@@ -40,7 +40,7 @@ NoteCrunch is a web application that allows users to upload `.mp3` files or past
 
 ---
 
-## ⚙️ Data Flow
+## Data Flow
 
 ### File Upload
 
