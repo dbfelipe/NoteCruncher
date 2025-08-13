@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, use } from "react";
 import axios from "axios";
 
 function GenerateFromText() {
@@ -8,7 +8,15 @@ function GenerateFromText() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  const [setName, setSetName] = useState("");
+  const [folders, setFolders] = useState([]);
+  const [selectedFolderId, setSelectedFolderId] = useState("");
+
   const handleGenerate = async () => {
+    if (!setName.trim()) {
+      setError("Please enter a set name before generating.");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
@@ -27,19 +35,42 @@ function GenerateFromText() {
   };
 
   const handleSaveAll = async () => {
+    if (!setName.trim()) {
+      setError("Set name is required.");
+      return;
+    }
+    if (flashcards.length === 0) return;
     setSaving(true);
+    setError("");
+
     try {
+      const createSetRes = await axios.post("http://localhost:3001/api/sets", {
+        name: setName.trim(),
+        folder_id: selectedFolderId || null,
+      });
+      const setId = createSetRes.data.id;
       await Promise.all(
         flashcards.map((card) =>
-          axios.post("http://localhost:3001/api/flashcards", card)
+          axios.post("http://localhost:3001/api/flashcards", {
+            question: card.question,
+            answer: card.answer,
+            set_id: setId,
+          })
         )
       );
       alert("Flashcards saved!");
-    } catch (err) {
-      setError("Failed to save flashcards.");
+    } catch (error) {
+      if (error.response?.status === 409) {
+        setError(
+          "A set with that name already exists. Use a different name (or we can add reuse flow next)."
+        );
+      } else {
+        setError("Failed to save flashcards.");
+      }
       console.error(error);
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const updateFlashcard = (index, field, value) => {
@@ -50,7 +81,30 @@ function GenerateFromText() {
 
   return (
     <div>
-      <h2>Generate Flashcards from Transcript or Notes</h2>
+      <h2>Generate Your Flashcard Set From Your Notes</h2>
+
+      <div className="flex flex-col sm:flex-row gap-3 mb-3">
+        <input
+          type="text"
+          placeholder="Set Name (required)"
+          value={setName}
+          onChange={(e) => setSetName(e.target.value)}
+          className="w-full sm:max-w-sm border rounded px-3 py-2"
+        />
+
+        <select
+          value={selectedFolderId}
+          onChange={(e) => setSelectedFolderId(e.target.value)}
+          className="w-full sm:max-w-xs border rounded px-3 py-2"
+        >
+          <option value="">No folder</option>
+          {folders.map((f) => (
+            <option key={f.id} value={f.id}>
+              {f.name}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <textarea
         rows={10}

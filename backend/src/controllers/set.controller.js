@@ -11,6 +11,8 @@ const getAllSets = async (req, res) => {
     : null;
   const limit = toIntOrNull(req.query.limit) ?? 100;
   const offset = toIntOrNull(req.query.offset) ?? 0;
+  const db = req.app.locals.db;
+
   try {
     if (folderId !== null) {
       result = await db.query(
@@ -105,7 +107,26 @@ const updateSet = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
-// ON DELETE CASCADE (flashcards.set_id) will remove its flashcards automatically
+
+const getFlashcardsInSet = async (req, res) => {
+  const db = req.app.locals.db;
+  const setId = Number(req.params.id);
+  if (!Number.isFinite(setId)) {
+    return res.status(400).json({ error: "Invalid set id" });
+  }
+  try {
+    const result = await db.query(
+      `SELECT * FROM flashcards WHERE set_id = $1 ORDER BY created_at DESC`,
+      [setId]
+    );
+    res.status(200).json(result.rows);
+  } catch (err) {
+    console.error("Error fetching flashcards in set:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// ON DELETE CASCADE (fl ashcards.set_id) will remove its flashcards automatically
 const deleteSet = async (req, res) => {
   const id = toIntOrNull(req.params.id);
   if (id === null) return res.status(400).json({ error: "Invalid set id" });

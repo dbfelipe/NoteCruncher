@@ -56,9 +56,14 @@ const createFlashcard = async (req, res) => {
         .status(400)
         .json({ error: "Question and answer are required" });
     }
+    if (!set_id) {
+      return res
+        .status(400)
+        .json({ error: "set_id is required to save to a set" });
+    }
     const result = await db.query(
-      "INSERT INTO flashcards (question, answer) VALUES ($1, $2) RETURNING *",
-      [question, answer]
+      "INSERT INTO flashcards (question, answer, set_id) VALUES ($1, $2) RETURNING *",
+      [question, answer, set_id]
     );
     res.status(201).json(result.rows[0]);
   } catch (error) {
