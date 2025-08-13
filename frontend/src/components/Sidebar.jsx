@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { X } from "lucide-react";
+import { Heading3, X } from "lucide-react";
 import { React, useState, useEffect } from "react";
 import ConfirmModal from "./ConfrimModal";
 import axios from "axios";
@@ -86,9 +86,21 @@ export default function Sidebar({ isOpen, onClose }) {
     <>
       {/* Desktop Sidebar */}
       <aside className="w-64 bg-white border-r px-4 py-6 hidden md:block">
-        <h2 className="text-lg font-semibold mb-4">Saved Flashcards</h2>
+        <li>
+          <NavLink
+            to="/sets"
+            className={({ isActive }) =>
+              isActive
+                ? "text-blue-600 font-semibold"
+                : "text-gray-700 hover:text-blue-600"
+            }
+          >
+            Flashcard Sets
+          </NavLink>
+        </li>
 
         <ul className="space-y-2">
+          <h3 className="text-lg font-semibold mb-4">Folders</h3>
           {folders.map((folder) => (
             <li
               key={folder.id}

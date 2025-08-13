@@ -6,6 +6,8 @@ import GenerateFromText from "./components/GenerateFromText";
 import Navbar from "./components/Navbar";
 import Sidebar from "./components/Sidebar";
 import { Routes, Route, Navigate } from "react-router-dom";
+import SetsList from "./pages/SetsList";
+import SetDetail from "./pages/SetDetail";
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
@@ -22,6 +24,8 @@ function App() {
             <Route path="/transcript" element={<GenerateFromText />} />
             <Route path="/links" element={<FileUploader />} />
             <Route path="/manual" element={<ManualFlashcardBuilder />} />
+            <Route path="/sets" element={<SetsList />} />
+            <Route path="/sets/:id" element={<SetDetail />} />
           </Routes>
         </main>
       </div>

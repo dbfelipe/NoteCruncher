@@ -12,6 +12,17 @@ function GenerateFromText() {
   const [folders, setFolders] = useState([]);
   const [selectedFolderId, setSelectedFolderId] = useState("");
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await axios.get("http://localhost:3001/api/folders");
+        setFolders(res.data || []);
+      } catch (e) {
+        console.error("Failed to fetch folders:", e);
+      }
+    })();
+  }, []);
+
   const handleGenerate = async () => {
     if (!setName.trim()) {
       setError("Please enter a set name before generating.");

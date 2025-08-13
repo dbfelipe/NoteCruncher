@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 
 const FileUploader = ({ onFileUpload }) => {
@@ -10,6 +10,23 @@ const FileUploader = ({ onFileUpload }) => {
   const [transcript, setTranscript] = useState("");
   const [flashcards, setFlashcards] = useState([]);
 
+  const [setName, setSetName] = useState("");
+  const [folders, setFolders] = useState([]);
+  const [folderId, setFolderId] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await axios.get("http://localhost:3001/api/folders");
+        setFolders(res.data || []);
+      } catch (e) {
+        console.error("Failed to fetch folders:", e);
+      }
+    })();
+  }, []);
+
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
   };
@@ -17,6 +34,10 @@ const FileUploader = ({ onFileUpload }) => {
   const handleUpload = async () => {
     const formData = new FormData();
     let endpoint = "";
+    if (!setName.trim()) {
+      setStatus("Please enter a set name before uploading.");
+      return;
+    }
 
     if (youtubeUrl) {
       formData.append("url", youtubeUrl); // must match `req.body.url` in backend
@@ -77,6 +98,27 @@ const FileUploader = ({ onFileUpload }) => {
 
   return (
     <div style={{ margin: "2rem auto", maxWidth: 800 }}>
+      <div style={{ marginBottom: "1rem" }}>
+        <input
+          type="text"
+          placeholder="Set name (required)"
+          value={setName}
+          onChange={(e) => setSetName(e.target.value)}
+          style={{ padding: "0.5rem", marginRight: "1rem", width: "60%" }}
+        />
+        <select
+          value={folderId}
+          onChange={(e) => setFolderId(e.target.value)}
+          style={{ padding: "0.5rem" }}
+        >
+          <option value="">No folder</option>
+          {folders.map((f) => (
+            <option key={f.id} value={f.id}>
+              {f.name}
+            </option>
+          ))}
+        </select>
+      </div>
       <h2>Upload Audio File</h2>
       <input type="file" accept=".mp3" onChange={handleFileChange} />
       <button onClick={handleUpload} style={{ marginLeft: "1rem" }}>
@@ -151,16 +193,52 @@ const FileUploader = ({ onFileUpload }) => {
 
           <button
             onClick={async () => {
-              await Promise.all(
-                flashcards.map((card) =>
-                  axios.post("http://localhost:3001/api/flashcards", card)
-                )
-              );
-              alert("Flashcards saved!");
+              setError("");
+              if (!setName.trim()) {
+                setError("Set name is required.");
+                return;
+              }
+              if (!flashcards.length) return;
+
+              setSaving(true);
+              try {
+                // 1) Create set
+                const setRes = await axios.post(
+                  "http://localhost:3001/api/sets",
+                  {
+                    name: setName.trim(),
+                    folder_id: folderId || null,
+                  }
+                );
+                const setId = setRes.data.id;
+
+                // 2) Save flashcards with set_id
+                await Promise.all(
+                  flashcards.map((card) =>
+                    axios.post("http://localhost:3001/api/flashcards", {
+                      question: card.question,
+                      answer: card.answer,
+                      set_id: setId,
+                    })
+                  )
+                );
+                alert("Flashcards saved to your set!");
+              } catch (e) {
+                console.error(e);
+                setError(
+                  e.response?.status === 409
+                    ? "A set with that name already exists. Use a different name."
+                    : "Failed to save flashcards."
+                );
+              } finally {
+                setSaving(false);
+              }
             }}
+            disabled={saving || !setName.trim()}
           >
-            Save All Flashcards
+            {saving ? "Saving..." : "Save All to Set"}
           </button>
+          {error && <p style={{ color: "red" }}>{error}</p>}
         </div>
       )}
     </div>

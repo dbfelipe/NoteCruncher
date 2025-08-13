@@ -49,7 +49,7 @@ const getAllFlashcards = async (req, res) => {
 
 const createFlashcard = async (req, res) => {
   try {
-    const { question, answer } = req.body;
+    const { question, answer, set_id } = req.body;
     const db = req.app.locals.db;
     if (!question || !answer) {
       return res
@@ -62,7 +62,7 @@ const createFlashcard = async (req, res) => {
         .json({ error: "set_id is required to save to a set" });
     }
     const result = await db.query(
-      "INSERT INTO flashcards (question, answer, set_id) VALUES ($1, $2) RETURNING *",
+      "INSERT INTO flashcards (question, answer, set_id) VALUES ($1, $2, $3) RETURNING *",
       [question, answer, set_id]
     );
     res.status(201).json(result.rows[0]);
