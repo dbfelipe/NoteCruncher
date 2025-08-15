@@ -21,6 +21,31 @@ export default function SetsList() {
     })();
   }, []);
 
+  const handleDeleteSet = async (setId, e) => {
+    e?.preventDefault(); // don't follow the Link
+    e?.stopPropagation(); // don't bubble to the Link
+    try {
+      // ask backend for this set's cards
+      const res = await axios.get(
+        `http://localhost:3001/api/sets/${setId}/flashcards`
+      );
+      const hasCards = (res.data?.length ?? 0) > 0;
+
+      if (
+        !hasCards ||
+        window.confirm(
+          "This set has flashcards. Are you sure you want to delete it?"
+        )
+      ) {
+        await axios.delete(`http://localhost:3001/api/sets/${setId}`);
+        setSets((prev) => prev.filter((s) => s.id !== setId)); // update UI without a full reload
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Failed to delete set.");
+    }
+  };
+
   if (loading) return <div className="p-4">Loading…</div>;
   if (err) return <div className="p-4 text-red-600">{err}</div>;
 
@@ -49,6 +74,12 @@ export default function SetsList() {
                         : ""}
                     </div>
                   </div>
+                  <button
+                    onClick={(e) => handleDeleteSet(s.id, e)}
+                    className="text-red-600 text-sm hover:underline"
+                  >
+                    Delete set
+                  </button>
                   <span className="text-blue-600 text-sm">View →</span>
                 </div>
               </Link>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, use } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 
 function GenerateFromText() {
@@ -11,6 +11,10 @@ function GenerateFromText() {
   const [setName, setSetName] = useState("");
   const [folders, setFolders] = useState([]);
   const [selectedFolderId, setSelectedFolderId] = useState("");
+
+  const [cards, setCards] = useState([
+    { question: "", answer: "" }, // start with one empty row
+  ]);
 
   useEffect(() => {
     (async () => {
@@ -89,6 +93,18 @@ function GenerateFromText() {
     updated[index][field] = value;
     setFlashcards(updated);
   };
+
+  const updateCard = (index, field, value) => {
+    const next = [...cards];
+    next[index][field] = value;
+    setCards(next);
+  };
+
+  const addCard = () =>
+    setCards((prev) => [...prev, { question: "", answer: "" }]);
+
+  const removeCard = (index) =>
+    setCards((prev) => prev.filter((_, i) => i !== index));
 
   return (
     <div>

@@ -1,7 +1,7 @@
 // Converts a value to a finite Number or returns null if it's not valid.
 // Useful for safely parsing numeric IDs from req.params or req.query.
 const toIntOrNull = (v) => {
-  if (v === undefined || v === null || v === "") return null; // <- handle ""
+  if (v === undefined || v === null || v === "") return null;
   const n = Number(v);
   return Number.isInteger(n) ? n : null;
 };
