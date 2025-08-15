@@ -8,6 +8,8 @@ export default function SetDetail() {
   const [setInfo, setSetInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+  const [newQ, setNewQ] = useState("");
+  const [newA, setNewA] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -32,6 +34,29 @@ export default function SetDetail() {
   if (loading) return <div className="p-4">Loading…</div>;
   if (err) return <div className="p-4 text-red-600">{err}</div>;
 
+  const handleAddCard = async () => {
+    if (!newQ.trim() || !newA.trim()) {
+      alert("Please fill in both question and answer.");
+      return;
+    }
+
+    try {
+      const res = await axios.post("http://localhost:3001/api/flashcards", {
+        question: newQ.trim(),
+        answer: newA.trim(),
+        set_id: id,
+      });
+
+      setCards((prev) => [...prev, res.data]);
+
+      // Clear form
+      setNewQ("");
+      setNewA("");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to add flashcard.");
+    }
+  };
   return (
     <div className="max-w-3xl mx-auto p-4">
       <div className="flex items-center justify-between mb-3">
@@ -52,13 +77,35 @@ export default function SetDetail() {
               key={c.id}
               className="border rounded-lg p-3 bg-white shadow-sm"
             >
-              <div className="text-sm text-gray-500 mb-1">Card #{c.id}</div>
               <div className="font-medium mb-1">Q: {c.question}</div>
               <div className="text-gray-800">A: {c.answer}</div>
             </div>
           ))}
         </div>
       )}
+      <div className="mt-6 p-4 border rounded-lg bg-white shadow-sm">
+        <h3 className="font-semibold mb-2">Add Flashcard</h3>
+        <input
+          type="text"
+          placeholder="Question"
+          value={newQ}
+          onChange={(e) => setNewQ(e.target.value)}
+          className="border p-2 w-full mb-2"
+        />
+        <textarea
+          placeholder="Answer"
+          value={newA}
+          onChange={(e) => setNewA(e.target.value)}
+          rows={3}
+          className="border p-2 w-full mb-2"
+        />
+        <button
+          onClick={handleAddCard}
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
+          Add Flashcard
+        </button>
+      </div>
     </div>
   );
 }
