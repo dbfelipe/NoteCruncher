@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import axios from "axios";
+import { FiEdit2 } from "react-icons/fi";
 
 export default function SetDetail() {
   const { id } = useParams();
@@ -57,6 +58,16 @@ export default function SetDetail() {
       alert("Failed to add flashcard.");
     }
   };
+
+  const deleteCard = async (cardId) => {
+    try {
+      await axios.delete(`http://localhost:3001/api/flashcards/${cardId}`);
+      setCards((prev) => prev.filter((c) => c.id !== cardId));
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete flashcard.");
+    }
+  };
   return (
     <div className="max-w-3xl mx-auto p-4">
       <div className="flex items-center justify-between mb-3">
@@ -75,10 +86,30 @@ export default function SetDetail() {
           {cards.map((c) => (
             <div
               key={c.id}
-              className="border rounded-lg p-3 bg-white shadow-sm"
+              className="group relative border rounded-lg p-3 bg-white shadow-sm"
             >
+              {/* Hover-only delete X (top-right) */}
+              <button
+                onClick={() => deleteCard(c.id)}
+                className="absolute top-2 right-2 text-red-500 opacity-0 group-hover:opacity-100 transition z-10"
+                aria-label="Delete flashcard"
+              >
+                ✕
+              </button>
+
+              {/* Content (give bottom padding so the edit button doesn’t overlap) */}
               <div className="font-medium mb-1">Q: {c.question}</div>
-              <div className="text-gray-800">A: {c.answer}</div>
+              <div className="text-gray-800 pb-8">A: {c.answer}</div>
+
+              {/* Edit button (bottom-right). 
+        Make it hover-only by adding: opacity-0 group-hover:opacity-100 */}
+              <button
+                onClick={() => console.log(`Edit card ${c.id}`)}
+                className="absolute bottom-2 right-2 flex items-center gap-1 text-gray-400 hover:text-blue-500 transition z-10"
+                aria-label="Edit flashcard"
+              >
+                <FiEdit2 size={16} />
+              </button>
             </div>
           ))}
         </div>
