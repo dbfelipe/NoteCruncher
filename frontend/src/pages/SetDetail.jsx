@@ -12,13 +12,15 @@ export default function SetDetail() {
   const [newQ, setNewQ] = useState("");
   const [newA, setNewA] = useState("");
 
+  const [editingId, setEditingId] = useState(null);
+  const [draftQ, setDraftQ] = useState("");
+  const [draftA, setDraftA] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editErr, setEditErr] = useState("");
+
   useEffect(() => {
     (async () => {
       try {
-        // (optional) fetch set meta if your API supports it; if not, skip this call
-        // const s = await axios.get(`http://localhost:3001/api/sets/${id}`);
-        // setSetInfo(s.data);
-
         const res = await axios.get(
           `http://localhost:3001/api/sets/${id}/flashcards`
         );
@@ -34,6 +36,46 @@ export default function SetDetail() {
 
   if (loading) return <div className="p-4">Loading…</div>;
   if (err) return <div className="p-4 text-red-600">{err}</div>;
+
+  const beginEdit = (card) => {
+    setEditingId(card.id);
+    setDraftQ(card.question);
+    setDraftA(card.answer);
+    setEditErr("");
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setDraftQ("");
+    setDraftA("");
+    setEditErr("");
+  };
+  const saveEdit = async () => {
+    if (!draftQ.trim() || !draftA.trim()) {
+      setEditErr("Both fields are required.");
+      return;
+    }
+    setSavingEdit(true);
+    setEditErr("");
+
+    try {
+      const { data: updated } = await axios.put(
+        `http://localhost:3001/api/flashcards/${editingId}`,
+        { question: draftQ.trim(), answer: draftA.trim() }
+      );
+
+      setCards((prev) =>
+        prev.map((c) => (c.id === editingId ? { ...c, ...updated } : c))
+      );
+
+      cancelEdit();
+    } catch (err) {
+      console.error(err);
+      setEditErr("Failed to save changes.");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
 
   const handleAddCard = async () => {
     if (!newQ.trim() || !newA.trim()) {
@@ -68,6 +110,7 @@ export default function SetDetail() {
       alert("Failed to delete flashcard.");
     }
   };
+
   return (
     <div className="max-w-3xl mx-auto p-4">
       <div className="flex items-center justify-between mb-3">
@@ -83,35 +126,90 @@ export default function SetDetail() {
         <p className="text-gray-600">No flashcards in this set.</p>
       ) : (
         <div className="space-y-3">
-          {cards.map((c) => (
-            <div
-              key={c.id}
-              className="group relative border rounded-lg p-3 bg-white shadow-sm"
-            >
-              {/* Hover-only delete X (top-right) */}
-              <button
-                onClick={() => deleteCard(c.id)}
-                className="absolute top-2 right-2 text-red-500 opacity-0 group-hover:opacity-100 transition z-10"
-                aria-label="Delete flashcard"
-              >
-                ✕
-              </button>
+          {cards.map((c) => {
+            const isEditing = c.id === editingId;
 
-              {/* Content (give bottom padding so the edit button doesn’t overlap) */}
-              <div className="font-medium mb-1">Q: {c.question}</div>
-              <div className="text-gray-800 pb-8">A: {c.answer}</div>
-
-              {/* Edit button (bottom-right). 
-        Make it hover-only by adding: opacity-0 group-hover:opacity-100 */}
-              <button
-                onClick={() => console.log(`Edit card ${c.id}`)}
-                className="absolute bottom-2 right-2 flex items-center gap-1 text-gray-400 hover:text-blue-500 transition z-10"
-                aria-label="Edit flashcard"
+            return (
+              <div
+                key={c.id}
+                className="group relative border rounded-lg p-3 bg-white shadow-sm"
               >
-                <FiEdit2 size={16} />
-              </button>
-            </div>
-          ))}
+                {/* Delete (hover-only) */}
+                {!isEditing && (
+                  <button
+                    onClick={() => deleteCard(c.id)}
+                    className="absolute top-2 right-2 text-red-500 opacity-0 group-hover:opacity-100 transition z-10"
+                    aria-label="Delete flashcard"
+                  >
+                    ✕
+                  </button>
+                )}
+
+                {/* VIEW MODE */}
+                {!isEditing && (
+                  <>
+                    <div className="font-medium mb-1">Q: {c.question}</div>
+                    <div className="text-gray-800 pb-8">A: {c.answer}</div>
+
+                    {/* Edit */}
+                    <button
+                      onClick={() => beginEdit(c)}
+                      className="absolute bottom-2 right-2 flex items-center gap-1 text-gray-400 hover:text-blue-600 transition z-10"
+                      aria-label="Edit flashcard"
+                    >
+                      <FiEdit2 size={16} />
+                    </button>
+                  </>
+                )}
+
+                {/* EDIT MODE */}
+                {isEditing && (
+                  <>
+                    <label className="block text-xs text-gray-500 mb-1">
+                      Question
+                    </label>
+                    <input
+                      value={draftQ}
+                      onChange={(e) => setDraftQ(e.target.value)}
+                      className="border p-2 w-full mb-2 rounded"
+                      autoFocus
+                    />
+
+                    <label className="block text-xs text-gray-500 mb-1">
+                      Answer
+                    </label>
+                    <textarea
+                      value={draftA}
+                      onChange={(e) => setDraftA(e.target.value)}
+                      rows={3}
+                      className="border p-2 w-full mb-8 rounded"
+                    />
+
+                    {editErr && (
+                      <div className="text-red-600 text-sm mb-2">{editErr}</div>
+                    )}
+
+                    <div className="absolute bottom-2 right-2 flex gap-2">
+                      <button
+                        onClick={cancelEdit}
+                        className="px-3 py-1 text-sm border rounded hover:bg-gray-50"
+                        disabled={savingEdit}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={saveEdit}
+                        className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-60"
+                        disabled={savingEdit}
+                      >
+                        {savingEdit ? "Saving..." : "Save"}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
       <div className="mt-6 p-4 border rounded-lg bg-white shadow-sm">

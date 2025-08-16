@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import { FiTrash2 } from "react-icons/fi";
 
 export default function SetsList() {
   const [sets, setSets] = useState([]);
@@ -61,28 +62,35 @@ export default function SetsList() {
         <ul className="space-y-2">
           {sets.map((s) => (
             <li key={s.id}>
-              <Link
-                to={`/sets/${s.id}`}
-                className="block border rounded-lg p-3 bg-white shadow-sm hover:shadow transition"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-medium">{s.name}</div>
-                    <div className="text-xs text-gray-500">
-                      {s.created_at
-                        ? new Date(s.created_at).toLocaleString()
-                        : ""}
-                    </div>
+              <div className="flex items-center justify-between border rounded-lg p-3 bg-white shadow-sm hover:shadow transition">
+                {/* Left side (name + created_at) */}
+                <Link to={`/sets/${s.id}`} className="flex-1">
+                  <div className="font-medium">{s.name}</div>
+                  <div className="text-xs text-gray-500">
+                    {s.created_at
+                      ? new Date(s.created_at).toLocaleString()
+                      : ""}
                   </div>
+                </Link>
+
+                {/* Right side (View + Delete) */}
+                <div className="flex items-center gap-3 ml-4">
+                  <Link
+                    to={`/sets/${s.id}`}
+                    className="text-blue-600 text-sm"
+                  ></Link>
                   <button
-                    onClick={(e) => handleDeleteSet(s.id, e)}
-                    className="text-red-600 text-sm hover:underline"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleDeleteSet(s.id, e);
+                    }}
+                    className="text-red-500 hover:text-red-700 transition"
+                    aria-label="Delete set"
                   >
-                    Delete set
+                    <FiTrash2 size={16} />
                   </button>
-                  <span className="text-blue-600 text-sm">View →</span>
                 </div>
-              </Link>
+              </div>
             </li>
           ))}
         </ul>
