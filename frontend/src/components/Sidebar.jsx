@@ -1,8 +1,10 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, Link } from "react-router-dom";
 import { Heading3, X } from "lucide-react";
 import { React, useState, useEffect } from "react";
 import ConfirmModal from "./ConfrimModal";
 import axios from "axios";
+import { TbCards } from "react-icons/tb"; // flashcards icon
+import { FiFolder, FiPlus, FiHome } from "react-icons/fi"; // folder + add
 
 export default function Sidebar({ isOpen, onClose }) {
   const [folders, setFolders] = useState([]);
@@ -81,50 +83,57 @@ export default function Sidebar({ isOpen, onClose }) {
     setModalOpen(false);
     setPendingDeleteId(null);
   };
+  const SidebarItem = ({ to, icon: Icon, label }) => (
+    <NavLink
+      to={to}
+      className={({ isActive }) =>
+        `flex items-center gap-3 px-3 py-2 rounded-lg transition
+         hover:bg-gray-100 ${
+           isActive ? "bg-gray-100 text-blue-600" : "text-gray-700"
+         }`
+      }
+    >
+      <Icon className="text-xl" />
+      <span className="font-medium">{label}</span>
+    </NavLink>
+  );
 
   return (
     <>
       {/* Desktop Sidebar */}
       <aside className="w-64 bg-white border-r px-4 py-6 hidden md:block">
-        <li>
-          <NavLink
-            to="/sets"
-            className={({ isActive }) =>
-              isActive
-                ? "text-blue-600 font-semibold"
-                : "text-gray-700 hover:text-blue-600"
-            }
-          >
-            Flashcard Sets
-          </NavLink>
-        </li>
+        <SidebarItem to="/" icon={FiHome} label="Home" />
+
+        <SidebarItem to="/sets" icon={TbCards} label="Flashcards" />
 
         <ul className="space-y-2">
-          <h3 className="text-lg font-semibold mb-4">Folders</h3>
-          {folders.map((folder) => (
-            <li
-              key={folder.id}
-              className="group flex justify-between items-center text-gray-700 hover:text-blue-600"
-            >
-              <span className="cursor-pointer">{folder.name}</span>
-              <button
-                onClick={() => handleDelete(folder.id)}
-                className="hidden group-hover:inline-flex text-red-500 hover:text-red-700 text-sm transition-opacity duration-150"
-              >
-                ✕
-              </button>
-            </li>
-          ))}
+          <h4 className="px-3 mt-6 mb-2 text-xs uppercase tracking-wide text-gray-500">
+            Folders
+          </h4>
+          <ul className="space-y-1">
+            {folders.map((f) => (
+              <li key={f.id}>
+                <Link
+                  to={`/folders/${f.id}`}
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100"
+                >
+                  <FiFolder className="text-lg text-gray-500" />
+                  <span className="truncate">{f.name}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </ul>
 
         {/* Add Folder Section */}
         <div className="mb-4">
           {!showAddInput ? (
             <button
-              onClick={() => setShowAddInput(true)}
-              className="w-full bg-blue-600 text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-blue-700"
+              onClick={() => setShowAddInput(true)} // or your open-form handler
+              className="mx-3 mt-3 inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
             >
-              + Add Folder
+              <FiPlus className="text-base" />
+              New folder
             </button>
           ) : (
             <form onSubmit={handleAddFolder} className="space-y-2">
