@@ -102,41 +102,42 @@ export default function Sidebar({ isOpen, onClose }) {
     <>
       {/* Desktop Sidebar */}
       <aside className="w-64 bg-white border-r px-4 py-6 hidden md:block">
+        {/* Main navigation */}
         <SidebarItem to="/" icon={FiHome} label="Home" />
-
         <SidebarItem to="/sets" icon={TbCards} label="Flashcards" />
 
-        <ul className="space-y-2">
-          <h4 className="px-3 mt-6 mb-2 text-xs uppercase tracking-wide text-gray-500">
-            Folders
-          </h4>
-          <ul className="space-y-1">
-            {folders.map((f) => (
-              <li key={f.id}>
-                <Link
-                  to={`/folders/${f.id}`}
-                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100"
-                >
-                  <FiFolder className="text-lg text-gray-500" />
-                  <span className="truncate">{f.name}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+        <hr className="my-4 border-gray-200" />
+
+        {/* Folders */}
+        <h4 className="px-3 mb-2 text-xs uppercase tracking-wide text-gray-500">
+          Folders
+        </h4>
+        <ul className="space-y-1">
+          {folders.map((f) => (
+            <li key={f.id}>
+              <Link
+                to={`/folders/${f.id}`}
+                className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100"
+              >
+                <FiFolder className="text-lg text-gray-500" />
+                <span className="truncate">{f.name}</span>
+              </Link>
+            </li>
+          ))}
         </ul>
 
         {/* Add Folder Section */}
-        <div className="mb-4">
+        <div className="mt-3">
           {!showAddInput ? (
             <button
-              onClick={() => setShowAddInput(true)} // or your open-form handler
+              onClick={() => setShowAddInput(true)}
               className="mx-3 mt-3 inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
             >
               <FiPlus className="text-base" />
               New folder
             </button>
           ) : (
-            <form onSubmit={handleAddFolder} className="space-y-2">
+            <form onSubmit={handleAddFolder} className="space-y-2 mt-3 px-3">
               <input
                 type="text"
                 value={newFolderName}
@@ -187,79 +188,43 @@ export default function Sidebar({ isOpen, onClose }) {
             </button>
             <hr className="my-4 border-gray-200" />
 
-            <h2 className="text-lg font-semibold mb-2">Navigation</h2>
-            <ul className="space-y-2 mb-4">
-              <li>
-                <NavLink
-                  to="/transcript"
-                  onClick={onClose}
-                  className={({ isActive }) =>
-                    isActive
-                      ? "text-blue-600 font-semibold"
-                      : "text-gray-700 hover:text-blue-600"
-                  }
-                >
-                  From Transcript
-                </NavLink>
-              </li>
-              <li>
-                <NavLink
-                  to="/links"
-                  onClick={onClose}
-                  className={({ isActive }) =>
-                    isActive
-                      ? "text-blue-600 font-semibold"
-                      : "text-gray-700 hover:text-blue-600"
-                  }
-                >
-                  From Links / Files
-                </NavLink>
-              </li>
-              <li>
-                <NavLink
-                  to="/manual"
-                  onClick={onClose}
-                  className={({ isActive }) =>
-                    isActive
-                      ? "text-blue-600 font-semibold"
-                      : "text-gray-700 hover:text-blue-600"
-                  }
-                >
-                  Manual
-                </NavLink>
-              </li>
-            </ul>
+            {/* Main navigation */}
+            <SidebarItem to="/" icon={FiHome} label="Home" />
+            <SidebarItem to="/sets" icon={TbCards} label="Flashcards" />
 
-            <h2 className="text-lg font-semibold mb-4">Saved Flashcards</h2>
+            <hr className="my-4 border-gray-200" />
 
-            <ul className="space-y-2">
-              {folders.map((folder) => (
-                <li
-                  key={folder.id}
-                  className="group flex justify-between items-center text-gray-700 hover:text-blue-600"
-                >
-                  <span className="cursor-pointer">{folder.name}</span>
-                  <button
-                    onClick={() => handleDelete(folder.id)}
-                    className="hidden group-hover:inline-flex text-red-500 hover:text-red-700 text-sm transition-opacity duration-150"
+            {/* Folders */}
+            <h4 className="px-1 mb-2 text-xs uppercase tracking-wide text-gray-500">
+              Folders
+            </h4>
+            <ul className="space-y-1">
+              {folders.map((f) => (
+                <li key={f.id}>
+                  <Link
+                    to={`/folders/${f.id}`}
+                    onClick={onClose}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100"
                   >
-                    ✕
-                  </button>
+                    <FiFolder className="text-lg text-gray-500" />
+                    <span className="truncate">{f.name}</span>
+                  </Link>
                 </li>
               ))}
             </ul>
-            {/* Add Folder Section (Mobile) */}
 
-            <div className="mb-4">
+            {/* Add Folder Section (Mobile) */}
+            <div className="mt-3">
               {!showAddInput ? (
                 <button
                   onClick={() => setShowAddInput(true)}
-                  className="w-full bg-blue-600 text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-blue-700"
+                  className="w-full inline-flex items-center gap-2 bg-blue-600 text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-blue-700"
                 >
-                  + Add Folder
+                  <FiPlus className="text-base" />
+                  New folder
                 </button>
               ) : (
-                <form onSubmit={handleAddFolder} className="space-y-2">
+                <form onSubmit={handleAddFolder} className="space-y-2 mt-3">
                   <input
                     type="text"
                     value={newFolderName}
