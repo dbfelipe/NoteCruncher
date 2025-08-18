@@ -259,6 +259,60 @@ export default function Sidebar({ isOpen, onClose }) {
                 </form>
               )}
             </div>
+
+            <hr className="my-4 border-gray-200" />
+
+            {/* Flashcard creation forms (mobile-only extra nav) */}
+            <h4 className="px-1 mb-2 text-xs uppercase tracking-wide text-gray-500">
+              Create Flashcards
+            </h4>
+            <ul className="space-y-2 mb-4">
+              <li>
+                <NavLink
+                  to="/transcript"
+                  onClick={onClose}
+                  className={({ isActive }) =>
+                    `block px-3 py-2 rounded-lg ${
+                      isActive
+                        ? "text-blue-600 font-semibold bg-gray-100"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`
+                  }
+                >
+                  From Transcript
+                </NavLink>
+              </li>
+              <li>
+                <NavLink
+                  to="/links"
+                  onClick={onClose}
+                  className={({ isActive }) =>
+                    `block px-3 py-2 rounded-lg ${
+                      isActive
+                        ? "text-blue-600 font-semibold bg-gray-100"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`
+                  }
+                >
+                  From Youtube / Media
+                </NavLink>
+              </li>
+              <li>
+                <NavLink
+                  to="/manual"
+                  onClick={onClose}
+                  className={({ isActive }) =>
+                    `block px-3 py-2 rounded-lg ${
+                      isActive
+                        ? "text-blue-600 font-semibold bg-gray-100"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`
+                  }
+                >
+                  Manual
+                </NavLink>
+              </li>
+            </ul>
           </div>
 
           {/* Overlay background */}
