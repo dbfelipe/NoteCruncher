@@ -147,6 +147,23 @@ const deleteSet = async (req, res) => {
   }
 };
 
+const assignFolderToSet = async (req, res) => {
+  const { setId } = req.params;
+  const { folder_id } = req.body;
+  const db = req.app.locals.db;
+
+  try {
+    const result = await db.query(
+      "UPDATE sets SET folder_id = $1 WHERE id = $2 RETURNING *",
+      [folder_id, setId]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Error assigning folder to set:", err);
+    res.status(500).json({ error: "Failed to assign folder." });
+  }
+};
+
 module.exports = {
   getAllSets,
   createSet,

@@ -98,6 +98,22 @@ export default function Sidebar({ isOpen, onClose }) {
     </NavLink>
   );
 
+  const FolderItem = ({ id, name, onClick }) => (
+    <NavLink
+      to={`/folders/${id}`}
+      onClick={onClick}
+      className={({ isActive }) =>
+        `flex items-center gap-3 px-3 py-2 rounded-lg transition
+         hover:bg-gray-100 ${
+           isActive ? "bg-gray-100 text-blue-600" : "text-gray-700"
+         }`
+      }
+    >
+      <FiFolder className="text-lg text-gray-500" />
+      <span className="truncate">{name}</span>
+    </NavLink>
+  );
+
   return (
     <>
       {/* Desktop Sidebar */}
@@ -113,17 +129,13 @@ export default function Sidebar({ isOpen, onClose }) {
           Folders
         </h4>
         <ul className="space-y-1">
-          {folders.map((f) => (
-            <li key={f.id}>
-              <Link
-                to={`/folders/${f.id}`}
-                className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100"
-              >
-                <FiFolder className="text-lg text-gray-500" />
-                <span className="truncate">{f.name}</span>
-              </Link>
-            </li>
-          ))}
+          <ul className="space-y-1">
+            {folders.map((f) => (
+              <li key={f.id}>
+                <FolderItem id={f.id} name={f.name} />
+              </li>
+            ))}
+          </ul>
         </ul>
 
         {/* Add Folder Section */}
@@ -201,14 +213,7 @@ export default function Sidebar({ isOpen, onClose }) {
             <ul className="space-y-1">
               {folders.map((f) => (
                 <li key={f.id}>
-                  <Link
-                    to={`/folders/${f.id}`}
-                    onClick={onClose}
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100"
-                  >
-                    <FiFolder className="text-lg text-gray-500" />
-                    <span className="truncate">{f.name}</span>
-                  </Link>
+                  <FolderItem id={f.id} name={f.name} onClick={onClose} />
                 </li>
               ))}
             </ul>

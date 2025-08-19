@@ -9,7 +9,6 @@ export default function FolderDetail() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
-  // Top controls state (create/add existing)
   const [newSetName, setNewSetName] = useState("");
   const [creating, setCreating] = useState(false);
 
@@ -28,7 +27,6 @@ export default function FolderDetail() {
     })();
   }, [folderId]);
 
-  // Delete set (reuse your existing “hasCards → confirm” pattern)
   const handleDeleteSet = async (setId) => {
     try {
       const res = await axios.get(
@@ -45,7 +43,6 @@ export default function FolderDetail() {
     }
   };
 
-  // Remove from folder (set folder_id null)
   const handleRemoveFromFolder = async (setId) => {
     try {
       await axios.patch(`http://localhost:3001/api/sets/${setId}`, {
@@ -57,7 +54,6 @@ export default function FolderDetail() {
     }
   };
 
-  // Create new set in this folder
   const handleCreateInFolder = async (e) => {
     e.preventDefault();
     if (!newSetName.trim()) return;
@@ -89,7 +85,7 @@ export default function FolderDetail() {
         </Link>
       </div>
 
-      {/* Add to folder controls (top) */}
+      {/* Add to folder controls */}
       <div className="mb-5 grid gap-3 md:grid-cols-2">
         {/* Create new set in this folder */}
         <form
