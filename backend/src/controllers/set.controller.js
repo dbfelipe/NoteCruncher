@@ -164,10 +164,25 @@ const assignFolderToSet = async (req, res) => {
   }
 };
 
+const getUnassignedSets = async (req, res) => {
+  const db = req.app.locals.db;
+  try {
+    const result = await db.query(
+      "SELECT * FROM sets WHERE folder_id IS NULL ORDER BY created_at DESC"
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching unassigned sets", err);
+    res.status(500).json({ error: "Failed to load sets." });
+  }
+};
+
 module.exports = {
   getAllSets,
   createSet,
   getFlashcardsInSet,
   updateSet,
   deleteSet,
+  assignFolderToSet,
+  getUnassignedSets,
 };

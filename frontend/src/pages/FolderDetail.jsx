@@ -12,14 +12,24 @@ export default function FolderDetail() {
   const [newSetName, setNewSetName] = useState("");
   const [creating, setCreating] = useState(false);
 
+  const [availableSets, setAvailableSets] = useState([]);
+  const [selectedSetId, setSelectedSetId] = useState("");
+  const [assigning, setAssigning] = useState(false);
+  const [assignError, setAssignError] = useState("");
+
   useEffect(() => {
     (async () => {
       try {
         const r = await axios.get(
           `http://localhost:3001/api/sets?folder_id=${folderId}`
         );
+        //for assigning set to a folder
+        const unassigned = await axios.get(
+          "http://localhost:3001/api/sets/unassigned"
+        );
+        setAvailableSets(unassigned.data);
         setSets(r.data || []);
-      } catch (e) {
+      } catch (err) {
         setErr("Failed to load sets for this folder.");
       } finally {
         setLoading(false);
@@ -113,7 +123,58 @@ export default function FolderDetail() {
         {/* (Optional) Add existing set picker — you can build later */}
         <div className="border rounded-lg p-3 bg-white shadow-sm">
           <div className="text-sm font-medium mb-2">Add existing set</div>
-          <button className="text-blue-600 text-sm">Choose a set…</button>
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!selectedSetId) return;
+
+              try {
+                setAssigning(true);
+                setAssignError("");
+
+                const { data: updatedSet } = await axios.put(
+                  `http://localhost:3001/api/sets/${selectedSetId}/folder`,
+                  { folder_id: folderId }
+                );
+
+                // Update sets in UI
+                setSets((prev) => [updatedSet, ...prev]);
+                setAvailableSets((prev) =>
+                  prev.filter((s) => s.id !== Number(selectedSetId))
+                );
+                setSelectedSetId("");
+              } catch (err) {
+                console.error(err);
+                setAssignError("Failed to assign set.");
+              } finally {
+                setAssigning(false);
+              }
+            }}
+            className="flex gap-2 items-center"
+          >
+            <select
+              value={selectedSetId}
+              onChange={(e) => setSelectedSetId(e.target.value)}
+              className="border rounded px-3 py-2 text-sm flex-1"
+            >
+              <option value="">Select a set</option>
+              {availableSets.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="submit"
+              disabled={!selectedSetId || assigning}
+              className="bg-blue-600 text-white text-sm px-3 py-2 rounded hover:bg-blue-700 disabled:opacity-60"
+            >
+              {assigning ? "Adding…" : "Add"}
+            </button>
+          </form>
+          {assignError && (
+            <p className="text-red-600 text-xs mt-1">{assignError}</p>
+          )}
         </div>
       </div>
 

@@ -8,8 +8,12 @@ router.post("/", setController.createSet);
 
 router.get("/:id/flashcards", setController.getFlashcardsInSet);
 
-//Incase you want to rename a set
+router.get("/unassigned", setController.getUnassignedSets);
+
+//for renaming of set
 router.put("/:id", setController.updateSet);
+
+router.put("/:setId/folder", setController.assignFolderToSet);
 
 router.delete("/:id", setController.deleteSet);
 
