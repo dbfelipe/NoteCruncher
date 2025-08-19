@@ -15,6 +15,11 @@ router.put("/:id", setController.updateSet);
 
 router.put("/:setId/folder", setController.assignFolderToSet);
 
+router.put(
+  "/unassign-by-folder/:folderId",
+  setController.unassignSetsFromFolder
+);
+
 router.delete("/:id", setController.deleteSet);
 
 module.exports = router;

@@ -177,6 +177,22 @@ const getUnassignedSets = async (req, res) => {
   }
 };
 
+const unassignSetsFromFolder = async (req, res) => {
+  const { folderId } = req.params;
+  const db = req.app.locals.db;
+
+  try {
+    const result = await db.query(
+      "UPDATE sets SET folder_id = NULL WHERE folder_id = $1 RETURNING *",
+      [folderId]
+    );
+    res.status(200).json(result.rows);
+  } catch (err) {
+    console.error("Error unassigning sets from folder:", err);
+    res.status(500).json({ error: "Failed to unassign sets." });
+  }
+};
+
 module.exports = {
   getAllSets,
   createSet,
@@ -185,4 +201,5 @@ module.exports = {
   deleteSet,
   assignFolderToSet,
   getUnassignedSets,
+  unassignSetsFromFolder,
 };
