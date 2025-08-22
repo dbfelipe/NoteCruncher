@@ -1,3 +1,5 @@
+const { get } = require("../routes/set.routes");
+
 const getAllFolders = async (req, res) => {
   try {
     const db = req.app.locals.db;
@@ -59,7 +61,7 @@ const deleteFolder = async (req, res) => {
   const db = req.app.locals.db;
 
   try {
-    await db.query("DELETE FROM flashcards WHERE folder_id = $1", [id]);
+    await db.query("DELETE FROM flashcards WHERE id = $1", [id]);
 
     const result = await db.query(
       "DELETE FROM folders WHERE id = $1 RETURNING *",
@@ -77,9 +79,25 @@ const deleteFolder = async (req, res) => {
   }
 };
 
+const getSetsInFolder = async (req, res) => {
+  const { id } = req.params;
+  const db = req.app.locals.db;
+
+  try {
+    const result = await db.query("SELECT * FROM sets WHERE folder_id = $1", [
+      id,
+    ]);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching sets in folder:", err);
+    res.status(500).json({ error: "Failed to fetch sets for folder" });
+  }
+};
+
 module.exports = {
   getAllFolders,
   createFolder,
   getFlashcardsInFolder,
   deleteFolder,
+  getSetsInFolder,
 };

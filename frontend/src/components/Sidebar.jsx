@@ -1,4 +1,4 @@
-import { NavLink, Link } from "react-router-dom";
+import { NavLink, Link, useNavigate } from "react-router-dom";
 import { Heading3, X } from "lucide-react";
 import { React, useState, useEffect } from "react";
 import ConfirmModal from "./ConfrimModal";
@@ -16,6 +16,7 @@ export default function Sidebar({ isOpen, onClose }) {
   const [newFolderName, setNewFolderName] = useState("");
   const [addingFolder, setAddingFolder] = useState(false);
   const [addError, setAddError] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchFolders = async () => {
@@ -62,26 +63,40 @@ export default function Sidebar({ isOpen, onClose }) {
 
   const handleDelete = async (folderId) => {
     const res = await axios.get(
-      `http://localhost:3001/api/folders/${folderId}/flashcards`
+      `http://localhost:3001/api/folders/${folderId}/sets`
     );
-    const flashcards = res.data;
+    const sets = res.data;
 
     setSelectedFolder({
       id: folderId,
       message:
-        res.data.length > 0
-          ? "This folder contains flashcards. Are you sure you want to delete it?"
-          : "Are you sure you want to delete this folder?",
+        "Are you sure you want to delete this folder? Although it will be deleted permenantly your sets will still be accessible.",
     });
     setModalOpen(true);
     setPendingDeleteId(folderId);
   };
 
   const handleConfirmDelete = async () => {
-    await axios.delete(`http://localhost:3001/api/folders/${pendingDeleteId}`);
-    setFolders(folders.filter((f) => f.id !== pendingDeleteId));
-    setModalOpen(false);
-    setPendingDeleteId(null);
+    try {
+      // Step 1: Unassign sets from this folder
+      await axios.put(
+        `http://localhost:3001/api/sets/unassign-by-folder/${pendingDeleteId}`
+      );
+
+      // Step 2: Delete the folder
+      await axios.delete(
+        `http://localhost:3001/api/folders/${pendingDeleteId}`
+      );
+
+      // Step 3: Update local folder list
+      setFolders((prev) => prev.filter((f) => f.id !== pendingDeleteId));
+      setModalOpen(false);
+      setPendingDeleteId(null);
+      navigate("/sets", { replace: true });
+    } catch (err) {
+      console.error("Failed to delete folder:", err);
+      alert("Failed to delete folder.");
+    }
   };
   const SidebarItem = ({ to, icon: Icon, label }) => (
     <NavLink
@@ -132,7 +147,16 @@ export default function Sidebar({ isOpen, onClose }) {
           <ul className="space-y-1">
             {folders.map((f) => (
               <li key={f.id}>
-                <FolderItem id={f.id} name={f.name} />
+                <div className="group flex items-center justify-between hover:bg-gray-100 px-3 py-2 rounded-lg transition">
+                  <FolderItem id={f.id} name={f.name} />
+                  <button
+                    onClick={() => handleDelete(f.id)}
+                    className="text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition"
+                    title="Delete folder"
+                  >
+                    ✕
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
@@ -213,7 +237,16 @@ export default function Sidebar({ isOpen, onClose }) {
             <ul className="space-y-1">
               {folders.map((f) => (
                 <li key={f.id}>
-                  <FolderItem id={f.id} name={f.name} onClick={onClose} />
+                  <div className="group flex items-center justify-between hover:bg-gray-100 px-3 py-2 rounded-lg transition">
+                    <FolderItem id={f.id} name={f.name} />
+                    <button
+                      onClick={() => handleDelete(f.id)}
+                      className="text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition"
+                      title="Delete folder"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
