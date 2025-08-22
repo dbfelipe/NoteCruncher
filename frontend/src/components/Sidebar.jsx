@@ -1,4 +1,4 @@
-import { NavLink, Link } from "react-router-dom";
+import { NavLink, Link, useNavigate } from "react-router-dom";
 import { Heading3, X } from "lucide-react";
 import { React, useState, useEffect } from "react";
 import ConfirmModal from "./ConfrimModal";
@@ -16,6 +16,7 @@ export default function Sidebar({ isOpen, onClose }) {
   const [newFolderName, setNewFolderName] = useState("");
   const [addingFolder, setAddingFolder] = useState(false);
   const [addError, setAddError] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchFolders = async () => {
@@ -91,6 +92,7 @@ export default function Sidebar({ isOpen, onClose }) {
       setFolders((prev) => prev.filter((f) => f.id !== pendingDeleteId));
       setModalOpen(false);
       setPendingDeleteId(null);
+      navigate("/sets", { replace: true });
     } catch (err) {
       console.error("Failed to delete folder:", err);
       alert("Failed to delete folder.");
