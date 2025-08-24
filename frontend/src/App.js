@@ -9,6 +9,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import SetsList from "./pages/SetsList";
 import SetDetail from "./pages/SetDetail";
 import FolderDetail from "./pages/FolderDetail";
+import StudyMode from "./pages/StudyMode";
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
@@ -28,6 +29,7 @@ function App() {
             <Route path="/sets" element={<SetsList />} />
             <Route path="/sets/:id" element={<SetDetail />} />
             <Route path="/folders/:id" element={<FolderDetail />} />
+            <Route path="/sets/:id/study" element={<StudyMode />} />
           </Routes>
         </main>
       </div>

@@ -11,6 +11,7 @@ export default function SetDetail() {
   const [err, setErr] = useState("");
   const [newQ, setNewQ] = useState("");
   const [newA, setNewA] = useState("");
+  const [set, setSet] = useState(null);
 
   const [editingId, setEditingId] = useState(null);
   const [draftQ, setDraftQ] = useState("");
@@ -119,6 +120,12 @@ export default function SetDetail() {
         </h2>
         <Link to="/sets" className="text-blue-600 text-sm hover:underline">
           ← Back to sets
+        </Link>
+        <Link
+          to={`/sets/${id}/study`}
+          className="text-blue-600 text-sm hover:underline"
+        >
+          Study mode →
         </Link>
       </div>
 
