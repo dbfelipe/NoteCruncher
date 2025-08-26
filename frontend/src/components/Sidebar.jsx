@@ -93,10 +93,10 @@ export default function Sidebar({ isOpen, onClose }) {
       to={to}
       className={({ isActive }) =>
         `flex items-center gap-3 px-3 py-2 rounded-lg transition
-         hover:bg-[color:var(--surface-2)]
+         hover:bg-[color:var(--accent-hover)]
          ${
            isActive
-             ? "bg-[color:var(--surface-2)] text-[color:var(--text)]"
+             ? "bg-[color:var(--cream)] text-[color:var(--ink)]"
              : "text-[color:var(--text)]"
          }`
       }
@@ -111,17 +111,19 @@ export default function Sidebar({ isOpen, onClose }) {
       to={`/folders/${id}`}
       onClick={onClick}
       className={({ isActive }) =>
-        `flex items-center gap-3 px-3 py-2 rounded-lg transition
-         hover:bg-[color:var(--surface-2)]
+        `flex items-center justify-between gap-3 px-3 py-2 rounded-lg transition
+         hover:bg-[color:var(--accent-hover)]
          ${
            isActive
-             ? "bg-[color:var(--surface-2)] text-[color:var(--text)]"
+             ? "bg-[color:var(--cream)] text-[color:var(--ink)]"
              : "text-[color:var(--text)]"
          }`
       }
     >
-      <FiFolder className="text-lg" style={{ color: "var(--muted)" }} />
-      <span className="truncate">{name}</span>
+      <div className="flex items-center gap-3">
+        <FiFolder className="text-lg" style={{ color: "var(--muted)" }} />
+        <span className="truncate">{name}</span>
+      </div>
     </NavLink>
   );
 
@@ -150,23 +152,13 @@ export default function Sidebar({ isOpen, onClose }) {
           Folders
         </h4>
         <ul className="space-y-1">
-          <ul className="space-y-1">
-            {folders.map((f) => (
-              <li key={f.id}>
-                <div className="group flex items-center justify-between px-3 py-2 rounded-lg transition hover:bg-[color:var(--surface-2)]">
-                  <FolderItem id={f.id} name={f.name} />
-                  <button
-                    onClick={() => handleDelete(f.id)}
-                    className="opacity-0 group-hover:opacity-100 transition"
-                    style={{ color: "#ef4444" }}
-                    title="Delete folder"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
+          {folders.map((f) => (
+            <li key={f.id}>
+              <div className="group">
+                <FolderItem id={f.id} name={f.name} />
+              </div>
+            </li>
+          ))}
         </ul>
 
         {/* Add Folder Section */}
@@ -271,16 +263,8 @@ export default function Sidebar({ isOpen, onClose }) {
             <ul className="space-y-1">
               {folders.map((f) => (
                 <li key={f.id}>
-                  <div className="group flex items-center justify-between px-3 py-2 rounded-lg transition hover:bg-[color:var(--surface-2)]">
+                  <div className="group">
                     <FolderItem id={f.id} name={f.name} />
-                    <button
-                      onClick={() => handleDelete(f.id)}
-                      className="opacity-0 group-hover:opacity-100 transition"
-                      style={{ color: "#ef4444" }}
-                      title="Delete folder"
-                    >
-                      ✕
-                    </button>
                   </div>
                 </li>
               ))}

@@ -262,7 +262,7 @@ export default function GenerateFromText() {
                 className="mx-1 px-2 py-0.5 rounded-md text-white"
                 style={{ background: "var(--accent-strong)" }}
               >
-                Generate
+                + Generate
               </span>
               .
             </div>
