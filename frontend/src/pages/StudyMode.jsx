@@ -3,7 +3,6 @@ import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 
-// Fisher–Yates shuffle
 function shuffle(array) {
   const a = array.slice();
   for (let i = a.length - 1; i > 0; i--) {
@@ -14,7 +13,7 @@ function shuffle(array) {
 }
 
 export default function StudyMode() {
-  const { id } = useParams(); // set id from route
+  const { id } = useParams();
   const navigate = useNavigate();
 
   const [cards, setCards] = useState([]);
@@ -27,7 +26,6 @@ export default function StudyMode() {
   const [shuffleOn, setShuffleOn] = useState(true);
   const [known, setKnown] = useState(new Set());
   const [againQueue, setAgainQueue] = useState([]);
-
   const [startedAt] = useState(Date.now());
   const [flips, setFlips] = useState(0);
 
@@ -59,7 +57,6 @@ export default function StudyMode() {
 
   const progress = useMemo(() => {
     if (!cards.length) return 0;
-    // progress based on distinct seen positions + items still in againQueue
     const seen = Math.min(cursor + 1, order.length);
     const denom = order.length + againQueue.length || 1;
     return Math.round((seen / denom) * 100);
@@ -70,7 +67,6 @@ export default function StudyMode() {
     if (cursor < order.length - 1) {
       setCursor((c) => c + 1);
     } else if (againQueue.length > 0) {
-      // end reached: append againQueue and continue
       setOrder((prev) => [...prev, ...againQueue]);
       setAgainQueue([]);
       setCursor((c) => c + 1);
@@ -90,7 +86,6 @@ export default function StudyMode() {
 
   const markAgain = useCallback(() => {
     if (!currentCard) return;
-    // re-queue this card to the end (simple spaced repetition)
     setAgainQueue((q) => [...q, currentIndex]);
     nextCard();
   }, [currentCard, currentIndex, nextCard]);
@@ -111,16 +106,14 @@ export default function StudyMode() {
 
   const toggleShuffle = () => {
     setShuffleOn((s) => !s);
-    // rebuild the order; reset position
     const base = cards.map((_, i) => i);
-    const newOrder = !shuffleOn ? shuffle(base) : base; // state hasn't toggled yet
+    const newOrder = !shuffleOn ? shuffle(base) : base;
     setOrder(newOrder);
     setCursor(0);
     setShowAnswer(false);
     setAgainQueue([]);
   };
 
-  // keyboard shortcuts
   useEffect(() => {
     const onKey = (e) => {
       if (
@@ -146,21 +139,29 @@ export default function StudyMode() {
 
   if (!cards.length) {
     return (
-      <div className="max-w-3xl mx-auto p-6">
-        <div className="flex items-center justify-between mb-4">
+      <div
+        className="min-h-screen px-4 py-6"
+        style={{ background: "var(--bg)", color: "var(--text)" }}
+      >
+        <div className="flex items-center justify-between mb-6 max-w-4xl mx-auto">
           <h2 className="text-xl font-semibold">Study Mode</h2>
           <button
             onClick={() => navigate(-1)}
-            className="text-blue-600 hover:underline"
+            className="text-sm px-3 py-1 rounded-md"
+            style={{ background: "var(--cream)", color: "var(--ink)" }}
           >
             ← Back
           </button>
         </div>
-        <div className="border rounded-lg p-6 bg-white shadow-sm">
-          <p className="text-gray-700">No cards in this set yet.</p>
+        <div
+          className="rounded-xl border p-6 max-w-4xl mx-auto"
+          style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+        >
+          <p style={{ color: "var(--muted)" }}>No cards in this set yet.</p>
           <Link
             to={`/sets/${id}`}
-            className="inline-block mt-3 text-blue-600 hover:underline"
+            className="inline-block mt-3 px-3 py-1 rounded-md"
+            style={{ background: "var(--accent-strong)", color: "#fff" }}
           >
             Go to set
           </Link>
@@ -170,81 +171,117 @@ export default function StudyMode() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-4">
-      <div className="flex items-center justify-between mb-3">
+    <div
+      className="min-h-screen px-4 py-6"
+      style={{ background: "var(--bg)", color: "var(--text)" }}
+    >
+      <div className="flex items-center justify-between mb-6 max-w-4xl mx-auto">
         <div>
           <h2 className="text-xl font-semibold">Study Mode</h2>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm" style={{ color: "var(--muted)" }}>
             Set #{id} • {cards.length} cards
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <Link
-            to={`/sets/${id}`}
-            className="text-blue-600 text-sm hover:underline"
-          >
-            ← Back to set
-          </Link>
-        </div>
+        <Link
+          to={`/sets/${id}`}
+          className="text-sm px-3 py-1 rounded-md"
+          style={{ background: "var(--cream)", color: "var(--ink)" }}
+        >
+          ← Back to set
+        </Link>
       </div>
 
       {/* Controls */}
-      <div className="mb-4 flex flex-wrap items-center gap-2">
+      <div className="mb-4 flex flex-wrap items-center gap-2 max-w-4xl mx-auto">
         <button
           onClick={toggleShuffle}
-          className={`px-3 py-1.5 text-sm rounded border ${
-            shuffleOn ? "bg-gray-100" : "bg-white"
-          } hover:bg-gray-50`}
+          className="px-3 py-1.5 text-sm rounded-lg border"
+          style={{
+            background: shuffleOn ? "var(--cream)" : "var(--surface)",
+            borderColor: "var(--border)",
+            color: shuffleOn ? "var(--ink)" : "var(--text)",
+          }}
         >
           {shuffleOn ? "Shuffled" : "In order"}
         </button>
         <button
           onClick={restart}
-          className="px-3 py-1.5 text-sm rounded border hover:bg-gray-50"
+          className="px-3 py-1.5 text-sm rounded-lg border"
+          style={{
+            background: "var(--surface)",
+            borderColor: "var(--border)",
+            color: "var(--text)",
+          }}
         >
           Restart
         </button>
-        <div className="ml-auto text-sm text-gray-500">Known: {known.size}</div>
+        <div className="ml-auto text-sm" style={{ color: "var(--muted)" }}>
+          Known: {known.size}
+        </div>
       </div>
 
       {/* Progress bar */}
-      <div className="h-2 w-full bg-gray-200 rounded overflow-hidden mb-4">
-        <div className="h-full bg-blue-600" style={{ width: `${progress}%` }} />
+      <div
+        className="h-2 w-full rounded overflow-hidden mb-4 max-w-4xl mx-auto"
+        style={{ background: "var(--surface-2)" }}
+      >
+        <div
+          className="h-full"
+          style={{ width: `${progress}%`, background: "var(--accent-strong)" }}
+        />
       </div>
-      <div className="text-xs text-gray-500 mb-3">{progress}% complete</div>
+      <div
+        className="text-xs mb-3 max-w-4xl mx-auto"
+        style={{ color: "var(--muted)" }}
+      >
+        {progress}% complete
+      </div>
 
-      {/* Card (flip animation) */}
-      <div className="relative select-none">
+      {/* Card */}
+      <div className="relative select-none max-w-4xl mx-auto">
         <div className="[perspective:1000px] w-full">
           <div
-            className={`relative h-[260px] sm:h-[300px] w-full transition-transform duration-500 [transform-style:preserve-3d] border rounded-2xl bg-white shadow-md`}
+            className="relative h-[260px] sm:h-[300px] w-full transition-transform duration-500 [transform-style:preserve-3d] rounded-2xl border"
             style={{
+              background: "var(--surface)",
+              borderColor: "var(--border)",
               transform: showAnswer ? "rotateY(180deg)" : "rotateY(0deg)",
             }}
           >
-            {/* Front = Question */}
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 [backface-visibility:hidden]">
-              <div className="uppercase tracking-wide text-[10px] text-gray-500 mb-2">
+              <div
+                className="uppercase tracking-wide text-[10px] mb-2"
+                style={{ color: "var(--muted)" }}
+              >
                 Question
               </div>
-              <div className="text-lg md:text-xl font-medium whitespace-pre-wrap">
+              <div
+                className="text-lg md:text-xl font-medium whitespace-pre-wrap"
+                style={{ color: "var(--text)" }}
+              >
                 {currentCard?.question}
               </div>
             </div>
-            {/* Back = Answer */}
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 [backface-visibility:hidden] [transform:rotateY(180deg)]">
-              <div className="uppercase tracking-wide text-[10px] text-gray-500 mb-2">
+              <div
+                className="uppercase tracking-wide text-[10px] mb-2"
+                style={{ color: "var(--muted)" }}
+              >
                 Answer
               </div>
-              <div className="text-lg md:text-xl font-medium whitespace-pre-wrap">
+              <div
+                className="text-lg md:text-xl font-medium whitespace-pre-wrap"
+                style={{ color: "var(--text)" }}
+              >
                 {currentCard?.answer}
               </div>
             </div>
           </div>
         </div>
-
-        {/* Flip hint */}
-        <div className="flex justify-center mt-3 text-xs text-gray-500">
+        <div
+          className="flex justify-center mt-3 text-xs"
+          style={{ color: "var(--muted)" }}
+        >
           Press{" "}
           <span className="mx-1 font-mono border px-1 rounded">Space</span> to
           flip
@@ -252,50 +289,88 @@ export default function StudyMode() {
       </div>
 
       {/* Actions */}
-      <div className="mt-5 grid grid-cols-3 gap-2">
+      <div className="mt-5 grid grid-cols-3 gap-2 max-w-4xl mx-auto">
         <button
           onClick={prevCard}
-          className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+          className="px-4 py-2 rounded-lg border"
+          style={{
+            background: "var(--surface)",
+            borderColor: "var(--border)",
+            color: "var(--text)",
+          }}
         >
           Prev
-          <div className="text-[10px] text-gray-500">J / ←</div>
+          <div className="text-[10px]" style={{ color: "var(--muted)" }}>
+            J / ←
+          </div>
         </button>
         <button
           onClick={flip}
-          className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+          className="px-4 py-2 rounded-lg border"
+          style={{
+            background: "var(--surface)",
+            borderColor: "var(--border)",
+            color: "var(--text)",
+          }}
         >
           Flip
-          <div className="text-[10px] text-gray-500">Space</div>
+          <div className="text-[10px]" style={{ color: "var(--muted)" }}>
+            Space
+          </div>
         </button>
         <button
           onClick={nextCard}
-          className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+          className="px-4 py-2 rounded-lg border"
+          style={{
+            background: "var(--surface)",
+            borderColor: "var(--border)",
+            color: "var(--text)",
+          }}
         >
           Next
-          <div className="text-[10px] text-gray-500">L / →</div>
+          <div className="text-[10px]" style={{ color: "var(--muted)" }}>
+            L / →
+          </div>
         </button>
       </div>
 
       {/* Grading */}
-      <div className="mt-3 grid grid-cols-2 gap-2">
+      <div className="mt-3 grid grid-cols-2 gap-2 max-w-4xl mx-auto">
         <button
           onClick={markAgain}
-          className="px-4 py-2 rounded-lg border border-red-300 text-red-700 hover:bg-red-50"
+          className="px-4 py-2 rounded-lg border"
+          style={{
+            borderColor: "#b42318",
+            color: "#b42318",
+            background: "var(--surface)",
+          }}
         >
           Again
-          <div className="text-[10px] text-gray-500">A</div>
+          <div className="text-[10px]" style={{ color: "var(--muted)" }}>
+            A
+          </div>
         </button>
         <button
           onClick={markKnown}
-          className="px-4 py-2 rounded-lg border border-green-300 text-green-700 hover:bg-green-50"
+          className="px-4 py-2 rounded-lg border"
+          style={{
+            borderColor: "#15803d",
+            color: "#15803d",
+            background: "var(--surface)",
+          }}
         >
           Got it
-          <div className="text-[10px] text-gray-500">G</div>
+          <div className="text-[10px]" style={{ color: "var(--muted)" }}>
+            G
+          </div>
         </button>
       </div>
 
       {/* Session footer */}
-      <div className="mt-6 text-xs text-gray-500 flex items-center justify-between">
+      <div
+        className="mt-6 text-xs flex items-center justify-between max-w-4xl mx-auto"
+        style={{ color: "var(--muted)" }}
+      >
         <div>Flips: {flips}</div>
         <div>Time: {Math.floor((Date.now() - startedAt) / 1000)}s</div>
       </div>

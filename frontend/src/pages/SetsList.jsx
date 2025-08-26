@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
-import { FiTrash2 } from "react-icons/fi";
 import SetRow from "../components/SetRow";
 
 export default function SetsList() {
@@ -24,15 +23,13 @@ export default function SetsList() {
   }, []);
 
   const handleDeleteSet = async (setId, e) => {
-    e?.preventDefault(); // don't follow the Link
-    e?.stopPropagation(); // don't bubble to the Link
+    e?.preventDefault();
+    e?.stopPropagation();
     try {
-      // ask backend for this set's cards
       const res = await axios.get(
         `http://localhost:3001/api/sets/${setId}/flashcards`
       );
       const hasCards = (res.data?.length ?? 0) > 0;
-
       if (
         !hasCards ||
         window.confirm(
@@ -40,7 +37,7 @@ export default function SetsList() {
         )
       ) {
         await axios.delete(`http://localhost:3001/api/sets/${setId}`);
-        setSets((prev) => prev.filter((s) => s.id !== setId)); // update UI without a full reload
+        setSets((prev) => prev.filter((s) => s.id !== setId));
       }
     } catch (e) {
       console.error(e);
@@ -52,24 +49,29 @@ export default function SetsList() {
   if (err) return <div className="p-4 text-red-600">{err}</div>;
 
   return (
-    <div className="max-w-3xl mx-auto p-4">
-      <h2 className="text-xl font-semibold mb-4">Your Flashcard Sets</h2>
+    <div
+      className="min-h-screen px-4 py-6"
+      style={{ background: "var(--bg)", color: "var(--text)" }}
+    >
+      <div className="max-w-4xl mx-auto">
+        <h2 className="text-xl font-semibold mb-6">Your Flashcard Sets</h2>
 
-      {sets.length === 0 ? (
-        <p className="text-gray-600">
-          No sets yet. Create one from Generate or Manual.
-        </p>
-      ) : (
-        <ul className="space-y-2">
-          {sets.map((s) => (
-            <SetRow
-              key={s.id}
-              set={s}
-              onDelete={(id, e) => handleDeleteSet(id, e)}
-            />
-          ))}
-        </ul>
-      )}
+        {sets.length === 0 ? (
+          <p style={{ color: "var(--muted)" }}>
+            No sets yet. Create one from Generate or Manual.
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {sets.map((s) => (
+              <SetRow
+                key={s.id}
+                set={s}
+                onDelete={(id, e) => handleDeleteSet(id, e)}
+              />
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

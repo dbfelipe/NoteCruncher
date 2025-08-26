@@ -23,7 +23,6 @@ export default function FolderDetail() {
         const r = await axios.get(
           `http://localhost:3001/api/sets?folder_id=${folderId}`
         );
-        //for assigning set to a folder
         const unassigned = await axios.get(
           "http://localhost:3001/api/sets/unassigned"
         );
@@ -86,58 +85,68 @@ export default function FolderDetail() {
   if (err) return <div className="p-4 text-red-600">{err}</div>;
 
   return (
-    <div className="max-w-3xl mx-auto p-4">
+    <div
+      className="min-h-screen px-4 py-6"
+      style={{ background: "var(--bg)", color: "var(--text)" }}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-6 max-w-4xl mx-auto">
         <h2 className="text-xl font-semibold">Folder #{folderId}</h2>
-        <Link to="/sets" className="text-blue-600 text-sm hover:underline">
+        <Link
+          to="/sets"
+          className="text-sm px-3 py-1 rounded-md"
+          style={{ background: "var(--cream)", color: "var(--ink)" }}
+        >
           ← All sets
         </Link>
       </div>
 
-      {/* Add to folder controls */}
-      <div className="mb-5 grid gap-3 md:grid-cols-2">
+      <main className="max-w-4xl mx-auto space-y-5">
         {/* Create new set in this folder */}
         <form
           onSubmit={handleCreateInFolder}
-          className="border rounded-lg p-3 bg-white shadow-sm"
+          className="rounded-xl border p-4"
+          style={{ background: "var(--surface)", borderColor: "var(--border)" }}
         >
-          <div className="text-sm font-medium mb-2">
-            Create new set in this folder
-          </div>
+          <div className="text-sm font-medium mb-2">Create new set</div>
           <input
             value={newSetName}
             onChange={(e) => setNewSetName(e.target.value)}
             placeholder="Set name"
-            className="border rounded w-full px-3 py-2 mb-2"
+            className="w-full rounded-lg px-3 py-2 border text-sm mb-2"
+            style={{
+              background: "var(--surface)",
+              borderColor: "var(--border)",
+              color: "var(--text)",
+            }}
           />
           <button
             type="submit"
             disabled={creating || !newSetName.trim()}
-            className="bg-blue-600 text-white text-sm px-3 py-2 rounded disabled:opacity-60"
+            className="px-3 py-2 rounded-lg text-white disabled:opacity-60"
+            style={{ background: "var(--accent-strong)" }}
           >
             {creating ? "Creating…" : "Create"}
           </button>
         </form>
 
-        {/* (Optional) Add existing set picker — you can build later */}
-        <div className="border rounded-lg p-3 bg-white shadow-sm">
+        {/* Add existing set */}
+        <div
+          className="rounded-xl border p-4"
+          style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+        >
           <div className="text-sm font-medium mb-2">Add existing set</div>
           <form
             onSubmit={async (e) => {
               e.preventDefault();
               if (!selectedSetId) return;
-
               try {
                 setAssigning(true);
                 setAssignError("");
-
                 const { data: updatedSet } = await axios.put(
                   `http://localhost:3001/api/sets/${selectedSetId}/folder`,
                   { folder_id: folderId }
                 );
-
-                // Update sets in UI
                 setSets((prev) => [updatedSet, ...prev]);
                 setAvailableSets((prev) =>
                   prev.filter((s) => s.id !== Number(selectedSetId))
@@ -155,7 +164,12 @@ export default function FolderDetail() {
             <select
               value={selectedSetId}
               onChange={(e) => setSelectedSetId(e.target.value)}
-              className="border rounded px-3 py-2 text-sm flex-1"
+              className="w-full rounded-lg px-3 py-2 border text-sm"
+              style={{
+                background: "var(--surface)",
+                borderColor: "var(--border)",
+                color: "var(--text)",
+              }}
             >
               <option value="">Select a set</option>
               {availableSets.map((s) => (
@@ -167,40 +181,42 @@ export default function FolderDetail() {
             <button
               type="submit"
               disabled={!selectedSetId || assigning}
-              className="bg-blue-600 text-white text-sm px-3 py-2 rounded hover:bg-blue-700 disabled:opacity-60"
+              className="px-3 py-2 rounded-lg text-white disabled:opacity-60"
+              style={{ background: "var(--accent-strong)" }}
             >
               {assigning ? "Adding…" : "Add"}
             </button>
           </form>
           {assignError && (
-            <p className="text-red-600 text-xs mt-1">{assignError}</p>
+            <p className="text-xs mt-1" style={{ color: "#b42318" }}>
+              {assignError}
+            </p>
           )}
         </div>
-      </div>
 
-      {/* Sets list */}
-      {sets.length === 0 ? (
-        <p className="text-gray-600">No sets in this folder yet.</p>
-      ) : (
-        <ul className="space-y-2">
-          {sets.map((s) => (
-            <SetRow
-              key={s.id}
-              set={s}
-              onDelete={handleDeleteSet}
-              rightExtras={
-                <button
-                  onClick={() => handleRemoveFromFolder(s.id)}
-                  className="text-gray-600 text-sm hover:underline"
-                  title="Remove from folder"
-                >
-                  Remove
-                </button>
-              }
-            />
-          ))}
-        </ul>
-      )}
+        {/* Sets list */}
+        {sets.length === 0 ? (
+          <p style={{ color: "var(--muted)" }}>No sets in this folder yet.</p>
+        ) : (
+          <ul className="space-y-2">
+            {sets.map((s) => (
+              <SetRow
+                key={s.id}
+                set={s}
+                onDelete={handleDeleteSet}
+                rightExtras={
+                  <button
+                    onClick={() => handleRemoveFromFolder(s.id)}
+                    className="text-sm"
+                    style={{ color: "var(--muted)" }}
+                    title="Remove from folder"
+                  ></button>
+                }
+              />
+            ))}
+          </ul>
+        )}
+      </main>
     </div>
   );
 }

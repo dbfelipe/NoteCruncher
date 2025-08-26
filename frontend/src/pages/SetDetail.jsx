@@ -11,8 +11,6 @@ export default function SetDetail() {
   const [err, setErr] = useState("");
   const [newQ, setNewQ] = useState("");
   const [newA, setNewA] = useState("");
-  const [set, setSet] = useState(null);
-
   const [editingId, setEditingId] = useState(null);
   const [draftQ, setDraftQ] = useState("");
   const [draftA, setDraftA] = useState("");
@@ -51,6 +49,7 @@ export default function SetDetail() {
     setDraftA("");
     setEditErr("");
   };
+
   const saveEdit = async () => {
     if (!draftQ.trim() || !draftA.trim()) {
       setEditErr("Both fields are required.");
@@ -64,11 +63,9 @@ export default function SetDetail() {
         `http://localhost:3001/api/flashcards/${editingId}`,
         { question: draftQ.trim(), answer: draftA.trim() }
       );
-
       setCards((prev) =>
         prev.map((c) => (c.id === editingId ? { ...c, ...updated } : c))
       );
-
       cancelEdit();
     } catch (err) {
       console.error(err);
@@ -83,17 +80,13 @@ export default function SetDetail() {
       alert("Please fill in both question and answer.");
       return;
     }
-
     try {
       const res = await axios.post("http://localhost:3001/api/flashcards", {
         question: newQ.trim(),
         answer: newA.trim(),
         set_id: id,
       });
-
       setCards((prev) => [...prev, res.data]);
-
-      // Clear form
       setNewQ("");
       setNewA("");
     } catch (err) {
@@ -113,135 +106,184 @@ export default function SetDetail() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-4">
-      <div className="flex items-center justify-between mb-3">
+    <div
+      className="min-h-screen px-4 py-6"
+      style={{ background: "var(--bg)", color: "var(--text)" }}
+    >
+      <div className="flex items-center justify-between mb-6 max-w-4xl mx-auto">
         <h2 className="text-xl font-semibold">
           {setInfo?.name ? setInfo.name : `Set #${id}`}
         </h2>
-        <Link to="/sets" className="text-blue-600 text-sm hover:underline">
-          ← Back to sets
-        </Link>
-        <Link
-          to={`/sets/${id}/study`}
-          className="text-blue-600 text-sm hover:underline"
-        >
-          Study mode →
-        </Link>
-      </div>
-
-      {cards.length === 0 ? (
-        <p className="text-gray-600">No flashcards in this set.</p>
-      ) : (
-        <div className="space-y-3">
-          {cards.map((c) => {
-            const isEditing = c.id === editingId;
-
-            return (
-              <div
-                key={c.id}
-                className="group relative border rounded-lg p-3 bg-white shadow-sm"
-              >
-                {/* Delete (hover-only) */}
-                {!isEditing && (
-                  <button
-                    onClick={() => deleteCard(c.id)}
-                    className="absolute top-2 right-2 text-red-500 opacity-0 group-hover:opacity-100 transition z-10"
-                    aria-label="Delete flashcard"
-                  >
-                    ✕
-                  </button>
-                )}
-
-                {/* VIEW MODE */}
-                {!isEditing && (
-                  <>
-                    <div className="font-medium mb-1">Q: {c.question}</div>
-                    <div className="text-gray-800 pb-8">A: {c.answer}</div>
-
-                    {/* Edit */}
-                    <button
-                      onClick={() => beginEdit(c)}
-                      className="absolute bottom-2 right-2 flex items-center gap-1 text-gray-400 hover:text-blue-600 transition z-10"
-                      aria-label="Edit flashcard"
-                    >
-                      <FiEdit2 size={16} />
-                    </button>
-                  </>
-                )}
-
-                {/* EDIT MODE */}
-                {isEditing && (
-                  <>
-                    <label className="block text-xs text-gray-500 mb-1">
-                      Question
-                    </label>
-                    <input
-                      value={draftQ}
-                      onChange={(e) => setDraftQ(e.target.value)}
-                      className="border p-2 w-full mb-2 rounded"
-                      autoFocus
-                    />
-
-                    <label className="block text-xs text-gray-500 mb-1">
-                      Answer
-                    </label>
-                    <textarea
-                      value={draftA}
-                      onChange={(e) => setDraftA(e.target.value)}
-                      rows={3}
-                      className="border p-2 w-full mb-8 rounded"
-                    />
-
-                    {editErr && (
-                      <div className="text-red-600 text-sm mb-2">{editErr}</div>
-                    )}
-
-                    <div className="absolute bottom-2 right-2 flex gap-2">
-                      <button
-                        onClick={cancelEdit}
-                        className="px-3 py-1 text-sm border rounded hover:bg-gray-50"
-                        disabled={savingEdit}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={saveEdit}
-                        className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-60"
-                        disabled={savingEdit}
-                      >
-                        {savingEdit ? "Saving..." : "Save"}
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            );
-          })}
+        <div className="flex gap-3">
+          <Link
+            to="/sets"
+            className="text-sm px-3 py-1 rounded-md"
+            style={{ background: "var(--cream)", color: "var(--ink)" }}
+          >
+            ← Back to sets
+          </Link>
+          <Link
+            to={`/sets/${id}/study`}
+            className="text-sm px-3 py-1 rounded-md"
+            style={{ background: "var(--accent-strong)", color: "#fff" }}
+          >
+            Study mode →
+          </Link>
         </div>
-      )}
-      <div className="mt-6 p-4 border rounded-lg bg-white shadow-sm">
-        <h3 className="font-semibold mb-2">Add Flashcard</h3>
-        <input
-          type="text"
-          placeholder="Question"
-          value={newQ}
-          onChange={(e) => setNewQ(e.target.value)}
-          className="border p-2 w-full mb-2"
-        />
-        <textarea
-          placeholder="Answer"
-          value={newA}
-          onChange={(e) => setNewA(e.target.value)}
-          rows={3}
-          className="border p-2 w-full mb-2"
-        />
-        <button
-          onClick={handleAddCard}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          Add Flashcard
-        </button>
       </div>
+
+      <main className="max-w-4xl mx-auto space-y-4">
+        {cards.length === 0 ? (
+          <p style={{ color: "var(--muted)" }}>No flashcards in this set.</p>
+        ) : (
+          <div className="space-y-3">
+            {cards.map((c) => {
+              const isEditing = c.id === editingId;
+              return (
+                <div
+                  key={c.id}
+                  className="group relative rounded-xl border p-4"
+                  style={{
+                    background: "var(--surface)",
+                    borderColor: "var(--border)",
+                  }}
+                >
+                  {!isEditing && (
+                    <button
+                      onClick={() => deleteCard(c.id)}
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition z-10"
+                      style={{ color: "#b42318" }}
+                      aria-label="Delete flashcard"
+                    >
+                      ✕
+                    </button>
+                  )}
+                  {!isEditing && (
+                    <>
+                      <div className="font-medium mb-1">Q: {c.question}</div>
+                      <div style={{ color: "var(--muted)" }}>A: {c.answer}</div>
+                      <button
+                        onClick={() => beginEdit(c)}
+                        className="absolute bottom-2 right-2 flex items-center gap-1 transition z-10"
+                        style={{ color: "var(--muted)" }}
+                        aria-label="Edit flashcard"
+                      >
+                        <FiEdit2 size={16} />
+                      </button>
+                    </>
+                  )}
+                  {isEditing && (
+                    <>
+                      <label
+                        className="block text-xs mb-1"
+                        style={{ color: "var(--muted)" }}
+                      >
+                        Question
+                      </label>
+                      <input
+                        value={draftQ}
+                        onChange={(e) => setDraftQ(e.target.value)}
+                        className="w-full rounded-lg px-3 py-2 border text-sm mb-2"
+                        style={{
+                          background: "var(--surface)",
+                          borderColor: "var(--border)",
+                          color: "var(--text)",
+                        }}
+                        autoFocus
+                      />
+                      <label
+                        className="block text-xs mb-1"
+                        style={{ color: "var(--muted)" }}
+                      >
+                        Answer
+                      </label>
+                      <textarea
+                        value={draftA}
+                        onChange={(e) => setDraftA(e.target.value)}
+                        rows={3}
+                        className="w-full rounded-lg px-3 py-2 border text-sm mb-2"
+                        style={{
+                          background: "var(--surface)",
+                          borderColor: "var(--border)",
+                          color: "var(--text)",
+                        }}
+                      />
+                      {editErr && (
+                        <div
+                          className="text-sm mb-2"
+                          style={{ color: "#b42318" }}
+                        >
+                          {editErr}
+                        </div>
+                      )}
+                      <div className="absolute bottom-2 right-2 flex gap-2">
+                        <button
+                          onClick={cancelEdit}
+                          className="px-3 py-1 text-sm rounded-lg border"
+                          style={{
+                            background: "var(--surface)",
+                            borderColor: "var(--border)",
+                            color: "var(--text)",
+                          }}
+                          disabled={savingEdit}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={saveEdit}
+                          className="px-3 py-1 text-sm rounded-lg text-white disabled:opacity-60"
+                          style={{ background: "var(--accent-strong)" }}
+                          disabled={savingEdit}
+                        >
+                          {savingEdit ? "Saving..." : "Save"}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div
+          className="rounded-xl border p-4"
+          style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+        >
+          <h3 className="font-semibold mb-2">Add Flashcard</h3>
+          <input
+            type="text"
+            placeholder="Question"
+            value={newQ}
+            onChange={(e) => setNewQ(e.target.value)}
+            className="w-full rounded-lg px-3 py-2 border text-sm mb-2"
+            style={{
+              background: "var(--surface)",
+              borderColor: "var(--border)",
+              color: "var(--text)",
+            }}
+          />
+          <textarea
+            placeholder="Answer"
+            value={newA}
+            onChange={(e) => setNewA(e.target.value)}
+            rows={3}
+            className="w-full rounded-lg px-3 py-2 border text-sm mb-2"
+            style={{
+              background: "var(--surface)",
+              borderColor: "var(--border)",
+              color: "var(--text)",
+            }}
+          />
+          <button
+            onClick={handleAddCard}
+            className="px-4 py-2 rounded-lg text-white"
+            style={{ background: "var(--accent-strong)" }}
+          >
+            Add Flashcard
+          </button>
+        </div>
+      </main>
     </div>
   );
 }
