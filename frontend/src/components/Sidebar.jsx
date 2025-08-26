@@ -1,10 +1,10 @@
 import { NavLink, Link, useNavigate } from "react-router-dom";
-import { Heading3, X } from "lucide-react";
-import { React, useState, useEffect } from "react";
+import { X } from "lucide-react";
+import React, { useState, useEffect } from "react";
 import ConfirmModal from "./ConfrimModal";
 import axios from "axios";
-import { TbCards } from "react-icons/tb"; // flashcards icon
-import { FiFolder, FiPlus, FiHome } from "react-icons/fi"; // folder + add
+import { TbCards } from "react-icons/tb";
+import { FiFolder, FiPlus, FiHome } from "react-icons/fi";
 
 export default function Sidebar({ isOpen, onClose }) {
   const [folders, setFolders] = useState([]);
@@ -19,20 +19,17 @@ export default function Sidebar({ isOpen, onClose }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchFolders = async () => {
+    (async () => {
       try {
         const res = await axios.get("http://localhost:3001/api/folders");
         setFolders(res.data);
-        console.log("Fetched folders:", res.data);
       } catch (error) {
         console.error("Error fetching Folders:", error);
       }
-    };
-    fetchFolders();
+    })();
   }, []);
 
   const handleAddFolder = async (e) => {
-    //Stops the default form submit behavior so the page doesn’t reload when you press Enter or click “Add Folder.” The ?. just makes sure e exists before calling preventDefault()
     e?.preventDefault();
     const name = newFolderName.trim();
     if (!name) {
@@ -45,16 +42,15 @@ export default function Sidebar({ isOpen, onClose }) {
       const res = await axios.post("http://localhost:3001/api/folders", {
         name,
       });
-      // optimistic prepend (API returns the created folder row)
       setFolders((prev) => [res.data, ...prev]);
       setNewFolderName("");
-      setShowAddInput(false); // hide input after adding
+      setShowAddInput(false);
     } catch (err) {
-      if (err.response?.status === 409) {
-        setAddError("That folder already exists.");
-      } else {
-        setAddError("Failed to add folder. Try again.");
-      }
+      setAddError(
+        err.response?.status === 409
+          ? "That folder already exists."
+          : "Failed to add folder. Try again."
+      );
       console.error("Add folder error:", err);
     } finally {
       setAddingFolder(false);
@@ -62,11 +58,9 @@ export default function Sidebar({ isOpen, onClose }) {
   };
 
   const handleDelete = async (folderId) => {
-    const res = await axios.get(
-      `http://localhost:3001/api/folders/${folderId}/sets`
-    );
-    const sets = res.data;
-
+    try {
+      await axios.get(`http://localhost:3001/api/folders/${folderId}/sets`);
+    } catch {}
     setSelectedFolder({
       id: folderId,
       message:
@@ -78,17 +72,12 @@ export default function Sidebar({ isOpen, onClose }) {
 
   const handleConfirmDelete = async () => {
     try {
-      // Step 1: Unassign sets from this folder
       await axios.put(
         `http://localhost:3001/api/sets/unassign-by-folder/${pendingDeleteId}`
       );
-
-      // Step 2: Delete the folder
       await axios.delete(
         `http://localhost:3001/api/folders/${pendingDeleteId}`
       );
-
-      // Step 3: Update local folder list
       setFolders((prev) => prev.filter((f) => f.id !== pendingDeleteId));
       setModalOpen(false);
       setPendingDeleteId(null);
@@ -98,13 +87,17 @@ export default function Sidebar({ isOpen, onClose }) {
       alert("Failed to delete folder.");
     }
   };
+
   const SidebarItem = ({ to, icon: Icon, label }) => (
     <NavLink
       to={to}
       className={({ isActive }) =>
         `flex items-center gap-3 px-3 py-2 rounded-lg transition
-         hover:bg-gray-100 ${
-           isActive ? "bg-gray-100 text-blue-600" : "text-gray-700"
+         hover:bg-[color:var(--surface-2)]
+         ${
+           isActive
+             ? "bg-[color:var(--surface-2)] text-[color:var(--text)]"
+             : "text-[color:var(--text)]"
          }`
       }
     >
@@ -119,12 +112,15 @@ export default function Sidebar({ isOpen, onClose }) {
       onClick={onClick}
       className={({ isActive }) =>
         `flex items-center gap-3 px-3 py-2 rounded-lg transition
-         hover:bg-gray-100 ${
-           isActive ? "bg-gray-100 text-blue-600" : "text-gray-700"
+         hover:bg-[color:var(--surface-2)]
+         ${
+           isActive
+             ? "bg-[color:var(--surface-2)] text-[color:var(--text)]"
+             : "text-[color:var(--text)]"
          }`
       }
     >
-      <FiFolder className="text-lg text-gray-500" />
+      <FiFolder className="text-lg" style={{ color: "var(--muted)" }} />
       <span className="truncate">{name}</span>
     </NavLink>
   );
@@ -132,26 +128,37 @@ export default function Sidebar({ isOpen, onClose }) {
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="w-64 bg-white border-r px-4 py-6 hidden md:block">
+      <aside
+        className="w-64 px-4 py-6 hidden md:block border-r"
+        style={{
+          background: "var(--surface)",
+          color: "var(--text)",
+          borderColor: "var(--border)",
+        }}
+      >
         {/* Main navigation */}
         <SidebarItem to="/" icon={FiHome} label="Home" />
         <SidebarItem to="/sets" icon={TbCards} label="Flashcards" />
 
-        <hr className="my-4 border-gray-200" />
+        <hr className="my-4" style={{ borderColor: "var(--border)" }} />
 
         {/* Folders */}
-        <h4 className="px-3 mb-2 text-xs uppercase tracking-wide text-gray-500">
+        <h4
+          className="px-3 mb-2 text-xs uppercase tracking-wide"
+          style={{ color: "var(--muted)" }}
+        >
           Folders
         </h4>
         <ul className="space-y-1">
           <ul className="space-y-1">
             {folders.map((f) => (
               <li key={f.id}>
-                <div className="group flex items-center justify-between hover:bg-gray-100 px-3 py-2 rounded-lg transition">
+                <div className="group flex items-center justify-between px-3 py-2 rounded-lg transition hover:bg-[color:var(--surface-2)]">
                   <FolderItem id={f.id} name={f.name} />
                   <button
                     onClick={() => handleDelete(f.id)}
-                    className="text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition"
+                    className="opacity-0 group-hover:opacity-100 transition"
+                    style={{ color: "#ef4444" }}
                     title="Delete folder"
                   >
                     ✕
@@ -165,9 +172,15 @@ export default function Sidebar({ isOpen, onClose }) {
         {/* Add Folder Section */}
         <div className="mt-3">
           {!showAddInput ? (
+            // Cream chip style for secondary action
             <button
               onClick={() => setShowAddInput(true)}
-              className="mx-3 mt-3 inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
+              className="mx-3 mt-3 inline-flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg border hover:opacity-90"
+              style={{
+                background: "var(--cream)",
+                borderColor: "var(--cream-2)",
+                color: "var(--ink)",
+              }}
             >
               <FiPlus className="text-base" />
               New folder
@@ -179,15 +192,26 @@ export default function Sidebar({ isOpen, onClose }) {
                 value={newFolderName}
                 onChange={(e) => setNewFolderName(e.target.value)}
                 placeholder="Folder name"
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 text-sm rounded-lg
+                           bg-[color:var(--surface)] border border-[color:var(--border)]
+                           text-[color:var(--text)] placeholder-[color:var(--muted)]
+                           focus:outline-none focus:ring-2 focus:ring-[color:var(--ring)]"
                 autoFocus
               />
-              {addError && <p className="text-red-600 text-xs">{addError}</p>}
+              {addError && <p className="text-red-400 text-xs">{addError}</p>}
               <div className="flex gap-2">
                 <button
                   type="submit"
                   disabled={addingFolder}
-                  className="flex-1 bg-blue-600 text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-60"
+                  className="flex-1 px-3 py-2 text-sm font-medium rounded-lg text-white disabled:opacity-60
+                             focus:outline-none focus:ring-2 focus:ring-[color:var(--ring)]"
+                  style={{ background: "var(--accent-strong)" }}
+                  onMouseOver={(e) =>
+                    (e.currentTarget.style.background = "var(--accent-hover)")
+                  }
+                  onMouseOut={(e) =>
+                    (e.currentTarget.style.background = "var(--accent-strong)")
+                  }
                 >
                   {addingFolder ? "Adding..." : "Add"}
                 </button>
@@ -198,7 +222,12 @@ export default function Sidebar({ isOpen, onClose }) {
                     setAddError("");
                     setNewFolderName("");
                   }}
-                  className="flex-1 bg-gray-300 text-gray-800 text-sm font-medium px-3 py-2 rounded-lg hover:bg-gray-400"
+                  className="flex-1 px-3 py-2 text-sm font-medium rounded-lg border hover:bg-[color:var(--surface-2)]"
+                  style={{
+                    background: "var(--surface)",
+                    color: "var(--text)",
+                    borderColor: "var(--border)",
+                  }}
                 >
                   Cancel
                 </button>
@@ -218,30 +247,36 @@ export default function Sidebar({ isOpen, onClose }) {
       {/* Mobile Drawer */}
       {isOpen && (
         <div className="fixed inset-0 z-40 flex md:hidden">
-          <div className="w-64 bg-white p-4 shadow-lg z-50">
+          <div
+            className="w-64 p-4 shadow-lg z-50"
+            style={{ background: "var(--surface)", color: "var(--text)" }}
+          >
             <button onClick={onClose} className="mb-4">
-              <X className="h-6 w-6 text-gray-600 hover:text-red-500" />
+              <X className="h-6 w-6" style={{ color: "var(--muted)" }} />
             </button>
-            <hr className="my-4 border-gray-200" />
 
-            {/* Main navigation */}
+            <hr className="my-4" style={{ borderColor: "var(--border)" }} />
+
             <SidebarItem to="/" icon={FiHome} label="Home" />
             <SidebarItem to="/sets" icon={TbCards} label="Flashcards" />
 
-            <hr className="my-4 border-gray-200" />
+            <hr className="my-4" style={{ borderColor: "var(--border)" }} />
 
-            {/* Folders */}
-            <h4 className="px-1 mb-2 text-xs uppercase tracking-wide text-gray-500">
+            <h4
+              className="px-1 mb-2 text-xs uppercase tracking-wide"
+              style={{ color: "var(--muted)" }}
+            >
               Folders
             </h4>
             <ul className="space-y-1">
               {folders.map((f) => (
                 <li key={f.id}>
-                  <div className="group flex items-center justify-between hover:bg-gray-100 px-3 py-2 rounded-lg transition">
+                  <div className="group flex items-center justify-between px-3 py-2 rounded-lg transition hover:bg-[color:var(--surface-2)]">
                     <FolderItem id={f.id} name={f.name} />
                     <button
                       onClick={() => handleDelete(f.id)}
-                      className="text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition"
+                      className="opacity-0 group-hover:opacity-100 transition"
+                      style={{ color: "#ef4444" }}
                       title="Delete folder"
                     >
                       ✕
@@ -256,7 +291,12 @@ export default function Sidebar({ isOpen, onClose }) {
               {!showAddInput ? (
                 <button
                   onClick={() => setShowAddInput(true)}
-                  className="w-full inline-flex items-center gap-2 bg-blue-600 text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-blue-700"
+                  className="w-full inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border hover:opacity-90"
+                  style={{
+                    background: "var(--cream)",
+                    borderColor: "var(--cream-2)",
+                    color: "var(--ink)",
+                  }}
                 >
                   <FiPlus className="text-base" />
                   New folder
@@ -268,17 +308,30 @@ export default function Sidebar({ isOpen, onClose }) {
                     value={newFolderName}
                     onChange={(e) => setNewFolderName(e.target.value)}
                     placeholder="Folder name"
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 text-sm rounded-lg
+                               bg-[color:var(--surface)] border border-[color:var(--border)]
+                               text-[color:var(--text)] placeholder-[color:var(--muted)]
+                               focus:outline-none focus:ring-2 focus:ring-[color:var(--ring)]"
                     autoFocus
                   />
                   {addError && (
-                    <p className="text-red-600 text-xs">{addError}</p>
+                    <p className="text-red-400 text-xs">{addError}</p>
                   )}
                   <div className="flex gap-2">
                     <button
                       type="submit"
                       disabled={addingFolder}
-                      className="flex-1 bg-blue-600 text-white text-sm font-medium px-3 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-60"
+                      className="flex-1 px-3 py-2 text-sm font-medium rounded-lg text-white disabled:opacity-60
+                                 focus:outline-none focus:ring-2 focus:ring-[color:var(--ring)]"
+                      style={{ background: "var(--accent-strong)" }}
+                      onMouseOver={(e) =>
+                        (e.currentTarget.style.background =
+                          "var(--accent-hover)")
+                      }
+                      onMouseOut={(e) =>
+                        (e.currentTarget.style.background =
+                          "var(--accent-strong)")
+                      }
                     >
                       {addingFolder ? "Adding..." : "Add"}
                     </button>
@@ -289,7 +342,12 @@ export default function Sidebar({ isOpen, onClose }) {
                         setAddError("");
                         setNewFolderName("");
                       }}
-                      className="flex-1 bg-gray-300 text-gray-800 text-sm font-medium px-3 py-2 rounded-lg hover:bg-gray-400"
+                      className="flex-1 px-3 py-2 text-sm font-medium rounded-lg border hover:bg-[color:var(--surface-2)]"
+                      style={{
+                        background: "var(--surface)",
+                        color: "var(--text)",
+                        borderColor: "var(--border)",
+                      }}
                     >
                       Cancel
                     </button>
@@ -297,64 +355,10 @@ export default function Sidebar({ isOpen, onClose }) {
                 </form>
               )}
             </div>
-
-            <hr className="my-4 border-gray-200" />
-
-            {/* Flashcard creation forms (mobile-only extra nav) */}
-            <h4 className="px-1 mb-2 text-xs uppercase tracking-wide text-gray-500">
-              Create Flashcards
-            </h4>
-            <ul className="space-y-2 mb-4">
-              <li>
-                <NavLink
-                  to="/transcript"
-                  onClick={onClose}
-                  className={({ isActive }) =>
-                    `block px-3 py-2 rounded-lg ${
-                      isActive
-                        ? "text-blue-600 font-semibold bg-gray-100"
-                        : "text-gray-700 hover:bg-gray-100"
-                    }`
-                  }
-                >
-                  From Transcript
-                </NavLink>
-              </li>
-              <li>
-                <NavLink
-                  to="/links"
-                  onClick={onClose}
-                  className={({ isActive }) =>
-                    `block px-3 py-2 rounded-lg ${
-                      isActive
-                        ? "text-blue-600 font-semibold bg-gray-100"
-                        : "text-gray-700 hover:bg-gray-100"
-                    }`
-                  }
-                >
-                  From Youtube / Media
-                </NavLink>
-              </li>
-              <li>
-                <NavLink
-                  to="/manual"
-                  onClick={onClose}
-                  className={({ isActive }) =>
-                    `block px-3 py-2 rounded-lg ${
-                      isActive
-                        ? "text-blue-600 font-semibold bg-gray-100"
-                        : "text-gray-700 hover:bg-gray-100"
-                    }`
-                  }
-                >
-                  Manual
-                </NavLink>
-              </li>
-            </ul>
           </div>
 
           {/* Overlay background */}
-          <div className="flex-1 bg-black opacity-30" onClick={onClose}></div>
+          <div className="flex-1 bg-black opacity-30" onClick={onClose} />
         </div>
       )}
     </>

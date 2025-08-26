@@ -1,0 +1,29 @@
+:root {
+  /* Dark greys */
+  --bg: #0f141b; /* page */
+  --surface: #141a22; /* cards/toolbars */
+  --surface-2: #1b2430; /* hover/raised */
+  --border: #2a3441; /* separators */
+
+  /* Text */
+  --text: #e6eaf0;
+  --muted: #a7b0c0;
+
+  /* Warm accents (tan/brown) */
+  --accent: #d3b892;
+  --accent-strong: #b68c5a;
+  --accent-hover: #9a7447;
+  --ring: #e8d6bd;
+
+  --cream: #ede7da;
+  --cream-2: #d9d2c2;
+  --ink: #121012;
+  html,
+  body,
+  #root {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+  }
+}
