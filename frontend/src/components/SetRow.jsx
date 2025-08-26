@@ -8,23 +8,30 @@ export default function SetRow({
 }) {
   return (
     <li>
-      <div className="flex items-center justify-between border rounded-lg p-3 bg-white shadow-sm hover:shadow transition">
+      <div
+        className="flex items-center justify-between rounded-xl border p-4 transition hover:opacity-90"
+        style={{ background: "var(--surface)", borderColor: "var(--border)" }}
+      >
         {/* Left side (name + created_at) */}
         <Link to={`/sets/${set.id}`} className="flex-1">
-          <div className="font-medium">{set.name}</div>
-          <div className="text-xs text-gray-500">
+          <div className="font-medium" style={{ color: "var(--text)" }}>
+            {set.name}
+          </div>
+          <div className="text-xs" style={{ color: "var(--muted)" }}>
             {set.created_at ? new Date(set.created_at).toLocaleString() : ""}
           </div>
         </Link>
 
-        {/* Right side (delete button only) */}
+        {/* Right side */}
         <div className="flex items-center gap-3 ml-4">
+          {rightExtras}
           <button
             onClick={(e) => {
               e.preventDefault();
               onDelete(set.id, e);
             }}
-            className="text-red-500 hover:text-red-700 transition"
+            className="transition"
+            style={{ color: "#b42318" }}
             aria-label="Delete set"
           >
             <FiTrash2 size={16} />
