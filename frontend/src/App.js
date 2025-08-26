@@ -10,6 +10,7 @@ import SetsList from "./pages/SetsList";
 import SetDetail from "./pages/SetDetail";
 import FolderDetail from "./pages/FolderDetail";
 import StudyMode from "./pages/StudyMode";
+import "./styles/theme-paper.css";
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
@@ -20,7 +21,8 @@ function App() {
       <div className="flex flex-1 overflow-hidden">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-        <main className="flex-1 overflow-y-auto p-6 bg-gray-50">
+        <main className="flex-1 overflow-y-auto bg-[var(--bg)]">
+          {" "}
           <Routes>
             <Route path="/" element={<Navigate to="/transcript" replace />} />
             <Route path="/transcript" element={<GenerateFromText />} />

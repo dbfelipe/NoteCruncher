@@ -1,32 +1,45 @@
 import { NavLink } from "react-router-dom";
-import { Menu, User } from "lucide-react"; // optional icons
+import { Menu, User } from "lucide-react";
 
 export default function Navbar({ onMenuClick }) {
-  const navItem =
-    "text-sm sm:text-base px-3 py-2 font-medium transition duration-200";
-  const active = "text-blue-600 border-b-2 border-blue-600";
-  const inactive = "text-gray-600 hover:text-blue-500";
+  const base =
+    "text-sm sm:text-base px-3 py-2 font-medium rounded-lg transition duration-200 hover:bg-[color:var(--surface-2)]";
+  const active =
+    "bg-[color:var(--surface-2)] text-[color:var(--text)] ring-1 ring-[color:var(--cream-2)]";
+  const inactive = "text-[color:var(--text)]";
 
   return (
-    <nav className="bg-white border-b shadow-sm">
+    <nav
+      className="border-b"
+      style={{
+        background: "var(--surface)",
+        borderColor: "var(--border)",
+        color: "var(--text)",
+      }}
+    >
       <div className="w-full px-4 py-3 flex items-center justify-between">
-        {/* Left Section */}
+        {/* Left */}
         <div className="flex items-center space-x-4">
           <button
-            className="md:hidden text-gray-600 focus:outline-none"
+            className="md:hidden p-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-[color:var(--ring)]"
+            style={{
+              background: "var(--surface)",
+              borderColor: "var(--border)",
+            }}
             onClick={onMenuClick}
+            aria-label="Open menu"
           >
-            <Menu className="h-5 w-5 text-gray-500 cursor-pointer" />
+            <Menu className="h-5 w-5" style={{ color: "var(--muted)" }} />
           </button>
           <span className="font-bold text-xl tracking-tight">NoteCrunch</span>
         </div>
 
-        {/* Center Navigation */}
-        <div className="hidden md:flex space-x-6">
+        {/* Center */}
+        <div className="hidden md:flex items-center space-x-2">
           <NavLink
             to="/transcript"
             className={({ isActive }) =>
-              `${navItem} ${isActive ? active : inactive}`
+              `${base} ${isActive ? active : inactive}`
             }
           >
             From Notes
@@ -34,7 +47,7 @@ export default function Navbar({ onMenuClick }) {
           <NavLink
             to="/links"
             className={({ isActive }) =>
-              `${navItem} ${isActive ? active : inactive}`
+              `${base} ${isActive ? active : inactive}`
             }
           >
             From Youtube / Media
@@ -42,18 +55,24 @@ export default function Navbar({ onMenuClick }) {
           <NavLink
             to="/manual"
             className={({ isActive }) =>
-              `${navItem} ${isActive ? active : inactive}`
+              `${base} ${isActive ? active : inactive}`
             }
           >
             Manual
           </NavLink>
         </div>
 
-        {/* Right Section */}
+        {/* Right */}
         <div className="flex items-center">
-          <User className="h-6 w-6 text-gray-600 cursor-pointer" />
+          <User className="h-6 w-6" style={{ color: "var(--muted)" }} />
         </div>
       </div>
+
+      {/* Optional thin tan underline for current route (mobile-friendly) */}
+      <div
+        className="hidden md:block h-[2px]"
+        style={{ background: "transparent" }}
+      />
     </nav>
   );
 }
