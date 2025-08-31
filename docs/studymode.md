@@ -1,196 +1,165 @@
-Study Mode — Technical Design & Explainer
+# Study Mode — Technical Design & Explainer
 
-This document explains how the Quizlet‑style Study Mode works in the app: data flow, algorithms, UI/UX, and test scenarios. It’s written to be easy to defend in a code review or interview.
+This document explains how the Quizlet-style Study Mode works in the app: data flow, algorithms, UI/UX, and test scenarios. It’s written to be easy to defend in a code review or interview.
 
-High‑Level Overview
+---
 
-Goal: Present one flashcard at a time, show the Question first, flip to Answer, and provide Next/Prev navigation plus Got it / Again grading.
+## High-Level Overview
 
-Key idea: Keep the original cards array immutable during a session. The study traversal is controlled by an order array of indices and a cursor pointer into that array.
+The goal of Study Mode is to present one flashcard at a time, show the Question first, flip to the Answer, and provide navigation (Next/Prev) plus grading (Got it / Again). The original `cards` array remains immutable during a session. Traversal is controlled by an `order` array of indices and a `cursor` pointer. Missed cards are re-surfaced via an `againQueue` (FIFO).
 
-Missed cards: A lightweight “spaced repeat” is implemented via an againQueue (FIFO queue) that re‑surfaces missed cards after the first pass.
+---
 
-Data Model (Runtime State)
+## Data Model (Runtime State)
 
-cards: Array<{ id, question, answer }> — fetched from GET /api/sets/:id/flashcards.
+- **cards**: `Array<{ id, question, answer }>` — fetched from `GET /api/sets/:id/flashcards`.
+- **order**: `number[]` — indices defining the study sequence (e.g., `[3,0,2,1]`).
+- **cursor**: `number` — current position within `order`.
+- **currentIndex**: derived: `order[cursor]`.
+- **currentCard**: derived: `cards[currentIndex]`.
+- **showAnswer**: `boolean` — false = Q, true = A.
+- **shuffleOn**: `boolean` — whether session order is randomized.
+- **againQueue**: `number[]` — FIFO for “Again” cards.
+- **known**: `Set<number>` — IDs of cards marked Got it.
+- **flips**, **startedAt**: analytics counters.
 
-order: number[] — array of indices into cards defining current study sequence (e.g., [3,0,2,1]).
+**Why indices, not card objects?**
 
-cursor: number — points to the current position within order.
+- Shuffling and reordering is simpler/cheaper with small integers.
+- Avoids mutating the `cards` array.
+- Prevents object identity issues during edits.
 
-currentIndex: number | null — derived: order[cursor].
+---
 
-currentCard: Flashcard | null — derived: cards[currentIndex].
+## Algorithms & Complexity
 
-showAnswer: boolean — false = show Q, true = show A.
+1. **Shuffle (Fisher–Yates)**
 
-shuffleOn: boolean — whether session order is randomized.
+   - Input: `[0..n-1]`.
+   - Swaps random indices from end to start.
+   - Complexity: `O(n)` time, `O(1)` extra space.
 
-againQueue: number[] — queue of indices for “Again” cards (FIFO).
+2. **Traversal (Array + Cursor)**
 
-known: Set<number> — IDs of cards marked “Got it.”
+   - `currentIndex = order[cursor]`.
+   - Move `cursor++` or `cursor--`.
+   - Complexity: `O(1)` per move.
 
-flips: number, startedAt: number — simple session analytics.
+3. **Again Queue**
 
-Why indices instead of card objects?
+   - On “Again”: enqueue `currentIndex`.
+   - At end of `order`: append `againQueue`, clear queue.
+   - Complexity: `O(1)` enqueue; `O(k)` append.
 
-Shuffling and reordering is cheaper and simpler with small integers.
+4. **Got It**
 
-Avoids mutating the cards array; edits elsewhere won’t scramble the session.
+   - Add `id` to `known`.
+   - No requeue; card exits until restart.
 
-Algorithms & Complexity
+5. **Progress**
+   - `seen = min(cursor+1, order.length)`.
+   - Denominator = `order.length + againQueue.length`.
+   - Progress % = `(seen / denominator) * 100`.
 
-1. Fisher–Yates Shuffle (Uniform Random Permutation)
+---
 
-Input: initial = [0, 1, …, n-1].
+## UI & Interaction
 
-Process: For i = n-1 → 1, swap i with random j ∈ [0, i].
+### Flip Animation
 
-Complexity: O(n) time, O(1) extra space (O(n) if copying).
+- CSS 3D transform with perspective.
+- Container uses `perspective`; inner uses `rotateY(180deg)`.
+- Front (Q) and Back (A) stacked with `backface-visibility: hidden`.
 
-Why: Guarantees each permutation is equally likely.
+### Controls & Shortcuts
 
-2. Array + Cursor Traversal
+- **Buttons**: Prev, Flip, Next, Again, Got it.
+- **Keyboard**:
+  - Space → Flip
+  - J/← → Prev
+  - L/→ → Next
+  - A → Again
+  - G → Got it
 
-Current item: currentIndex = order[cursor] ⇒ currentCard = cards[currentIndex].
+Inputs/textarea are ignored to prevent hijacking typing.
 
-Next: cursor++ (bounded by order.length - 1).
+### Session Toggles
 
-Prev: cursor-- (bounded by 0).
+- **Shuffle**: rebuilds order, resets cursor and queues.
+- **Restart**: clears known + againQueue, rebuilds order.
 
-Complexity: O(1) per move; simple and predictable.
+---
 
-3. "Again" Queue (FIFO)
+## Control Flow
 
-On Again: push currentIndex into againQueue.
+1. **Mount / Set Change** → fetch cards, build order.
+2. **Render Question** → Flip to show Answer.
+3. **Grade**:
+   - Got it → add to known, go Next.
+   - Again → enqueue, go Next.
+4. **End of Deck**: if againQueue nonempty, append and continue.
+5. **Session Finish**: cursor at last + againQueue empty → Done (100%).
 
-At end of order: append againQueue to order and clear againQueue.
+---
 
-Effect: Missed cards reappear in the order they were missed.
+## Edge Cases & Decisions
 
-Complexity: O(1) per enqueue; O(k) to append k misses once per pass.
+- **Empty set** → Show friendly “No cards” message + link back.
+- **Single card** → Flip works; Again cycles it endlessly until Got it.
+- **Edits mid-session** → Ignored until refresh.
+- **Queue policy** → FIFO chosen (fairness).
+- **Known tracking** → Informational only, doesn’t alter traversal.
 
-4. "Got it" Handling
+---
 
-Add currentCard.id to known and advance. No requeue.
+## API Contracts
 
-Effect: Card exits the review cycle unless the user restarts.
+- `GET /api/sets/:id/flashcards` → `[{ id, question, answer }]` (ordered by `created_at DESC`).
+- Create/update/delete endpoints exist but Study Mode only reads.
 
-5. Progress Computation
+---
 
-seen = min(cursor + 1, order.length).
+## Manual Test Scenarios
 
-Denominator: order.length + againQueue.length (accounts for items still queued to review).
+- **Empty Set**: Show “No cards”, progress 0%.
+- **Single Card**: Again cycles, Got it exits.
+- **Basic Flow (3 cards)**: Got it → Again → Next → missed resurfaces.
+- **Prev/Next Boundaries**: No underflow or overflow.
+- **Shuffle Toggle**: Rebuilds order, clears queues.
+- **Restart**: Clears known + againQueue, new order.
+- **Keyboard**: Matches buttons; ignores typing fields.
+- **Performance**: 500 cards remain smooth.
 
-Progress %: round((seen / denominator) \* 100).
+---
 
-Reasoning: Users see honest progress that includes pending “Again” cards.
+## Possible Enhancements
 
-UI & Interaction Model
-Flip Animation
+- Type-to-Answer (auto-grade with fuzzy match).
+- Leitner Boxes / SM-2 spaced repetition.
+- Known-only / Unknown-only filters.
+- Session persistence (localStorage/DB).
+- Audio & image support.
 
-Technique: 3D transform with perspective.
+---
 
-Container uses CSS perspective; inner card uses transform-style: preserve-3d and rotates with rotateY(180deg) when showAnswer is true.
+## FAQ
 
-Front (Question) and Back (Answer) faces are absolutely stacked with backface-visibility: hidden; the Back is pre‑rotated by rotateY(180deg).
+- **Q:** Stack or queue?  
+  **A:** Traversal = array+cursor. Misses = FIFO queue.
+- **Q:** Why indices, not objects?  
+  **A:** Cheaper, immutable, avoids object issues.
+- **Q:** Is progress accurate?  
+  **A:** Yes, includes pending Again cards.
 
-Controls & Shortcuts
+---
 
-Buttons: Prev, Flip, Next, Again, Got it.
+## Open Questions
 
-Keyboard: Space → Flip; J/← → Prev; L/→ → Next; A → Again; G → Got it.
+- Should Again items loop until Got it, or only once per pass?
+- On Shuffle, should current card remain first or restart?
+- Should we enforce strict mode (no grading before Flip)?
 
-Inputs/textarea are ignored by the hotkeys to avoid hijacking typing.
+---
 
-Session Toggles
-
-Shuffle: rebuilds order (shuffled or in‑order), resets cursor and queues.
-
-Restart: clears known/againQueue, resets cursor, rebuilds order.
-
-Control Flow (Lifecycle)
-
-Mount / set change: fetch cards, build order (shuffled or not).
-
-Render Question → Flip: toggle showAnswer.
-
-Grade:
-
-Got it: add id to known, go Next.
-
-Again: push index to againQueue, go Next.
-
-End of deck: if againQueue has items, append them to order and continue.
-
-Session finish: when cursor reaches the final item and againQueue is empty, you’re done (100%).
-
-Edge Cases & Decisions
-
-Empty set: Show friendly message + link back.
-
-Edits mid‑session: By design, the session is stable after load; refresh to pick up changes.
-
-Known tracking: purely informational; does not change traversal beyond skipping requeue.
-
-Queue policy: FIFO (fairness). LIFO (stack) is intentionally not used because it over‑weights newest misses.
-
-API Contracts (assumed)
-
-GET /api/sets/:id/flashcards → [{ id, question, answer, ... }] ordered by created_at DESC (frontend reorders for studying).
-
-Create/update/delete endpoints exist but Study Mode only reads.
-
-Manual Test Scenarios (Additive)
-
-Empty Set: Expect “No cards” UI and link back. Progress 0%.
-
-Single Card: Flip works; Again should cycle it endlessly until Got it.
-
-Basic Flow (3 cards):
-
-Start with Q1 → Flip → Got it → Q2 → Again → Q3 → end → Q2 resurfaces.
-
-Progress shows pending “Again”.
-
-Prev/Next Boundaries: At first card, Prev doesn’t go below 0; at last, Next stops unless againQueue extends deck.
-
-Shuffle Toggle: Rebuilds order; cursor resets; againQueue cleared.
-
-Restart: Clears known and againQueue, rebuilds from current shuffle setting.
-
-Keyboard: Space/J/L/A/G match buttons; typing in inputs doesn’t trigger shortcuts.
-
-Performance: With 500 cards, navigation stays snappy; flip anim remains smooth.
-
-Possible Enhancements
-
-Type‑to‑Answer Mode: Hide answer until the user types; auto‑grade with fuzzy match (Levenshtein) and send wrong answers to againQueue.
-
-Leitner Boxes / SM‑2: Replace simple queue with spaced‑repetition scheduling.
-
-Known‑only / Unknown‑only filters: Drill subsets.
-
-Session Persistence: Save progress and queues per set in localStorage or DB.
-
-Audio & Images: Extend cards to support media (TTS for Q/A, image front/back).
-
-FAQ (How to Explain Quickly)
-
-Q: Is this a stack or a queue? A: The main traversal is array + cursor. Missed items use a queue (FIFO) so they reappear in the order you missed them.
-
-Q: Why store indices instead of card objects in order? A: It keeps cards immutable, makes reshuffling/appending cheap, and avoids object identity issues.
-
-Q: How accurate is the progress bar? A: It counts both the items you’ve seen and items still in the againQueue, so it doesn’t jump from 90% to 100% while misses still remain.
-
-Open Questions (confirm expected behavior)
-
-Should Again items loop until marked Got it, or only once per session pass?
-
-On Shuffle, should we preserve the current card at the front, or always restart from the first?
-
-Do we want a strict mode (no grading buttons until after Flip)?
-
-Owner: Frontend — StudyMode.jsx
-
-Status: Implemented and stable; ready for iterative enhancement.
+**Owner:** `Frontend — StudyMode.jsx`  
+**Status:** Implemented and stable, ready for enhancements.

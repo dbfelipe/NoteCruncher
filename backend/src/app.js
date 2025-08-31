@@ -12,9 +12,50 @@ require("dotenv").config();
 
 const app = express();
 
+const { createRemoteJWKSet, jwtVerify } = require("jose");
+
+const region = "us-east-1";
+const userPoolId = "us-east-1_0T8LoEjmQ"; // from Cognito
+const clientId = "13nv4ai8cbg027cksfn4651qn9"; // SPA client ID
+
+const issuer = `https://cognito-idp.${region}.amazonaws.com/${userPoolId}`;
+const jwks = createRemoteJWKSet(new URL(`${issuer}/.well-known/jwks.json`));
+
+async function requireAuth(req, res, next) {
+  try {
+    const authHeader = req.headers.authorization || "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    if (!token) return res.status(401).json({ error: "Missing token" });
+
+    const { payload } = await jwtVerify(token, jwks, {
+      issuer,
+      audience: clientId,
+    });
+    if (payload.token_use !== "access") {
+      return res.status(401).json({ error: "Invalid token use" });
+    }
+
+    req.user = payload; // { sub, email, ... }
+    next();
+  } catch (err) {
+    console.error("JWT verification failed:", err);
+    return res.status(401).json({ error: "Invalid or expired token" });
+  }
+}
+
+//requiring login for folder and set endpoints
+//app.use("/api/folders", requireAuth, folderRoutes);
+//app.use("/api/sets", requireAuth, setRoutes);
+
 // Middleware
 app.use(helmet());
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:3000", // React dev server
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 app.use(morgan("dev"));
 app.use(express.json());
 
