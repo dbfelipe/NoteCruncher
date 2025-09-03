@@ -9,8 +9,8 @@ Amplify.configure({
         oauth: {
           domain: "us-east-10t8loejmq.auth.us-east-1.amazoncognito.com",
           scopes: ["openid", "email", "profile"],
-          redirectSignIn: ["http://localhost:3000/"],
-          redirectSignOut: ["http://localhost:3000/"],
+          redirectSignIn: ["http://localhost:3000"],
+          redirectSignOut: ["http://localhost:3000"],
           responseType: "code", // Authorization Code + PKCE
         },
       },
