@@ -1,7 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { Menu, User } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import { signIn, signOut, getUser } from "../auth";
+import { signIn, signOut, currentUser } from "../auth";
 
 export default function Navbar({ onMenuClick }) {
   const base =
@@ -16,7 +16,7 @@ export default function Navbar({ onMenuClick }) {
 
   useEffect(() => {
     (async () => {
-      const u = await getUser(); // returns null if not signed in
+      const u = await currentUser(); // returns null if not signed in
       setUser(u);
       setLoadingUser(false);
     })();
