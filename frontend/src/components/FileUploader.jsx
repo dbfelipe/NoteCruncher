@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import { api } from "../api";
+import { fetchAuthSession, signInWithRedirect } from "aws-amplify/auth";
 import { FiUpload, FiLink, FiSave, FiFolder, FiFileText } from "react-icons/fi";
 
 function DotsLoader({ label = "Working", active }) {
@@ -17,6 +18,13 @@ function DotsLoader({ label = "Working", active }) {
       {active ? dots : ""}
     </span>
   );
+}
+
+const API_BASE = "http://localhost:3001/api"; // mirrors your helper
+
+async function getAccessToken() {
+  const { tokens } = await fetchAuthSession();
+  return tokens?.accessToken?.toString() ?? null;
 }
 
 const FileUploader = ({ onFileUpload }) => {
@@ -41,8 +49,8 @@ const FileUploader = ({ onFileUpload }) => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await axios.get("http://localhost:3001/api/folders");
-        setFolders(res.data || []);
+        const folders = await api.get("/folders");
+        setFolders(folders || []);
       } catch (e) {
         console.error("Failed to fetch folders:", e);
       }
@@ -65,37 +73,45 @@ const FileUploader = ({ onFileUpload }) => {
       return;
     }
 
-    const formData = new FormData();
-    let endpoint = "";
-
-    if (youtubeUrl) {
-      formData.append("url", youtubeUrl);
-      endpoint = "http://localhost:3001/api/videos/youtube";
-    } else if (file) {
-      formData.append("file", file);
-      endpoint = "http://localhost:3001/api/videos/upload";
-    }
-
     setUploading(true);
     setStatus("Uploading & processing");
 
     try {
-      const response = await axios.post(endpoint, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      let transcript = "";
 
-      const { transcript } = response.data;
+      if (youtubeUrl) {
+        // Use helper (JSON)
+        const data = await api.post("/videos/youtube", { url: youtubeUrl });
+        transcript = data?.transcript || "";
+      } else if (file) {
+        // Use raw fetch with FormData (helper enforces JSON, so we bypass it here)
+        const token = await getAccessToken();
+        if (!token) {
+          await signInWithRedirect({ provider: "Cognito" });
+          throw new Error("Not authenticated");
+        }
+        const fd = new FormData();
+        fd.append("file", file);
+        const res = await fetch(`${API_BASE}/videos/upload`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` }, // no Content-Type for FormData
+          body: fd,
+        });
+        if (res.status === 401) {
+          await signInWithRedirect({ provider: "Cognito" });
+          throw new Error("Unauthorized");
+        }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const payload = await res.json();
+        transcript = payload?.transcript || "";
+        if (onFileUpload) onFileUpload(payload);
+      }
 
-      const flashRes = await axios.post(
-        "http://localhost:3001/api/flashcards/generate",
-        { text: transcript }
-      );
-      setFlashcards(flashRes.data.flashcards || []);
-
-      if (onFileUpload) onFileUpload(response.data);
+      const gen = await api.post("/flashcards/generate", { text: transcript });
+      setFlashcards(gen?.flashcards || []);
       setStatus("Done");
     } catch (err) {
-      console.error("Error uploading file or link:", err);
+      console.error("Error uploading or generating:", err);
       setStatus("Upload failed");
       setError("Something went wrong during upload. Try again.");
     } finally {
@@ -113,17 +129,15 @@ const FileUploader = ({ onFileUpload }) => {
 
     setSaving(true);
     try {
-      // 1) Create set
-      const setRes = await axios.post("http://localhost:3001/api/sets", {
+      const setRes = await api.post("/sets", {
         name: setName.trim(),
         folder_id: folderId || null,
       });
-      const setId = setRes.data.id;
+      const setId = setRes.id;
 
-      // 2) Save flashcards
       await Promise.all(
         flashcards.map((card) =>
-          axios.post("http://localhost:3001/api/flashcards", {
+          api.post("/flashcards", {
             question: card.question,
             answer: card.answer,
             set_id: setId,
@@ -134,7 +148,7 @@ const FileUploader = ({ onFileUpload }) => {
     } catch (e) {
       console.error(e);
       setError(
-        e.response?.status === 409
+        e?.response?.status === 409
           ? "A set with that name already exists. Use a different name."
           : "Failed to save flashcards."
       );

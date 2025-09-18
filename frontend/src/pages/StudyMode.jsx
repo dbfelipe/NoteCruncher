@@ -1,7 +1,7 @@
 // src/pages/StudyMode.jsx
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import axios from "axios";
+import { api } from "../api";
 
 function shuffle(array) {
   const a = array.slice();
@@ -32,10 +32,7 @@ export default function StudyMode() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await axios.get(
-          `http://localhost:3001/api/sets/${id}/flashcards`
-        );
-        const rows = res.data || [];
+        const rows = (await api.get(`/sets/${id}/flashcards`)) || [];
         setCards(rows);
         const initial = rows.map((_, idx) => idx);
         setOrder(shuffleOn ? shuffle(initial) : initial);

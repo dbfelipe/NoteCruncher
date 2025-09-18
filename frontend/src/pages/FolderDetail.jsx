@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import axios from "axios";
 import SetRow from "../components/SetRow";
+import { api } from "../api";
 
 export default function FolderDetail() {
   const { id: folderId } = useParams();
@@ -20,14 +20,10 @@ export default function FolderDetail() {
   useEffect(() => {
     (async () => {
       try {
-        const r = await axios.get(
-          `http://localhost:3001/api/sets?folder_id=${folderId}`
-        );
-        const unassigned = await axios.get(
-          "http://localhost:3001/api/sets/unassigned"
-        );
-        setAvailableSets(unassigned.data);
-        setSets(r.data || []);
+        const setsInFolder = await api.get(`/sets?folder_id=${folderId}`);
+        const unassigned = await api.get("/sets/unassigned");
+        setAvailableSets(unassigned);
+        setSets(setsInFolder || []);
       } catch (err) {
         setErr("Failed to load sets for this folder.");
       } finally {
@@ -38,14 +34,12 @@ export default function FolderDetail() {
 
   const handleDeleteSet = async (setId) => {
     try {
-      const res = await axios.get(
-        `http://localhost:3001/api/sets/${setId}/flashcards`
-      );
-      const hasCards = (res.data?.length ?? 0) > 0;
+      const cards = await api.get(`/sets/${setId}/flashcards`);
+      const hasCards = (cards?.length ?? 0) > 0;
       if (hasCards && !window.confirm("This set has flashcards. Delete it?"))
         return;
 
-      await axios.delete(`http://localhost:3001/api/sets/${setId}`);
+      await api.del(`/sets/${setId}`);
       setSets((prev) => prev.filter((s) => s.id !== setId));
     } catch {
       alert("Failed to delete set.");
@@ -54,9 +48,7 @@ export default function FolderDetail() {
 
   const handleRemoveFromFolder = async (setId) => {
     try {
-      await axios.patch(`http://localhost:3001/api/sets/${setId}`, {
-        folder_id: null,
-      });
+      await api.patch(`/sets/${setId}`, { folder_id: null });
       setSets((prev) => prev.filter((s) => s.id !== setId));
     } catch {
       alert("Failed to remove set from folder.");
@@ -68,7 +60,7 @@ export default function FolderDetail() {
     if (!newSetName.trim()) return;
     try {
       setCreating(true);
-      const { data } = await axios.post("http://localhost:3001/api/sets", {
+      const data = await api.post("/sets", {
         name: newSetName.trim(),
         folder_id: folderId,
       });
@@ -143,9 +135,11 @@ export default function FolderDetail() {
               try {
                 setAssigning(true);
                 setAssignError("");
-                const { data: updatedSet } = await axios.put(
-                  `http://localhost:3001/api/sets/${selectedSetId}/folder`,
-                  { folder_id: folderId }
+                const updatedSet = await api.put(
+                  `/sets/${selectedSetId}/folder`,
+                  {
+                    folder_id: folderId,
+                  }
                 );
                 setSets((prev) => [updatedSet, ...prev]);
                 setAvailableSets((prev) =>

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import axios from "axios";
 import { FiEdit2 } from "react-icons/fi";
+import { api } from "../api";
 
 export default function SetDetail() {
   const { id } = useParams();
@@ -20,10 +20,8 @@ export default function SetDetail() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await axios.get(
-          `http://localhost:3001/api/sets/${id}/flashcards`
-        );
-        setCards(res.data || []);
+        const data = await api.get(`/sets/${id}/flashcards`);
+        setCards(data || []);
       } catch (e) {
         console.error(e);
         setErr("Failed to load flashcards for this set.");
@@ -59,10 +57,10 @@ export default function SetDetail() {
     setEditErr("");
 
     try {
-      const { data: updated } = await axios.put(
-        `http://localhost:3001/api/flashcards/${editingId}`,
-        { question: draftQ.trim(), answer: draftA.trim() }
-      );
+      const updated = await api.put(`/flashcards/${editingId}`, {
+        question: draftQ.trim(),
+        answer: draftA.trim(),
+      });
       setCards((prev) =>
         prev.map((c) => (c.id === editingId ? { ...c, ...updated } : c))
       );
@@ -81,12 +79,12 @@ export default function SetDetail() {
       return;
     }
     try {
-      const res = await axios.post("http://localhost:3001/api/flashcards", {
+      const res = await api.post("/flashcards", {
         question: newQ.trim(),
         answer: newA.trim(),
         set_id: id,
       });
-      setCards((prev) => [...prev, res.data]);
+      setCards((prev) => [...prev, res]);
       setNewQ("");
       setNewA("");
     } catch (err) {
@@ -97,7 +95,7 @@ export default function SetDetail() {
 
   const deleteCard = async (cardId) => {
     try {
-      await axios.delete(`http://localhost:3001/api/flashcards/${cardId}`);
+      await api.del(`/flashcards/${cardId}`);
       setCards((prev) => prev.filter((c) => c.id !== cardId));
     } catch (err) {
       console.error(err);

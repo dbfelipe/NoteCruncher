@@ -1,6 +1,6 @@
+// SetsList.jsx
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import axios from "axios";
+import { api } from "../api";
 import SetRow from "../components/SetRow";
 
 export default function SetsList() {
@@ -11,8 +11,8 @@ export default function SetsList() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await axios.get("http://localhost:3001/api/sets");
-        setSets(res.data || []);
+        const data = await api.get("/sets");
+        setSets(Array.isArray(data) ? data : []);
       } catch (e) {
         console.error(e);
         setErr("Failed to load sets.");
@@ -26,17 +26,15 @@ export default function SetsList() {
     e?.preventDefault();
     e?.stopPropagation();
     try {
-      const res = await axios.get(
-        `http://localhost:3001/api/sets/${setId}/flashcards`
-      );
-      const hasCards = (res.data?.length ?? 0) > 0;
+      const cards = await api.get(`/sets/${setId}/flashcards`);
+      const hasCards = (cards?.length ?? 0) > 0;
       if (
         !hasCards ||
         window.confirm(
           "This set has flashcards. Are you sure you want to delete it?"
         )
       ) {
-        await axios.delete(`http://localhost:3001/api/sets/${setId}`);
+        await api.del(`/sets/${setId}`);
         setSets((prev) => prev.filter((s) => s.id !== setId));
       }
     } catch (e) {

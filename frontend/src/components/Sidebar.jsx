@@ -2,9 +2,9 @@ import { NavLink, Link, useNavigate } from "react-router-dom";
 import { X } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import ConfirmModal from "./ConfrimModal";
-import axios from "axios";
 import { TbCards } from "react-icons/tb";
 import { FiFolder, FiPlus, FiHome } from "react-icons/fi";
+import { api } from "../api";
 
 export default function Sidebar({ isOpen, onClose }) {
   const [folders, setFolders] = useState([]);
@@ -21,8 +21,8 @@ export default function Sidebar({ isOpen, onClose }) {
   useEffect(() => {
     (async () => {
       try {
-        const res = await axios.get("http://localhost:3001/api/folders");
-        setFolders(res.data);
+        const res = await api.get("/folders");
+        setFolders(res || []);
       } catch (error) {
         console.error("Error fetching Folders:", error);
       }
@@ -39,10 +39,8 @@ export default function Sidebar({ isOpen, onClose }) {
     setAddingFolder(true);
     setAddError("");
     try {
-      const res = await axios.post("http://localhost:3001/api/folders", {
-        name,
-      });
-      setFolders((prev) => [res.data, ...prev]);
+      const created = await api.post("/folders", { name });
+      setFolders((prev) => [created, ...prev]);
       setNewFolderName("");
       setShowAddInput(false);
     } catch (err) {
@@ -59,7 +57,7 @@ export default function Sidebar({ isOpen, onClose }) {
 
   const handleDelete = async (folderId) => {
     try {
-      await axios.get(`http://localhost:3001/api/folders/${folderId}/sets`);
+      await api.get(`/folders/${folderId}/sets`);
     } catch {}
     setSelectedFolder({
       id: folderId,
@@ -72,12 +70,8 @@ export default function Sidebar({ isOpen, onClose }) {
 
   const handleConfirmDelete = async () => {
     try {
-      await axios.put(
-        `http://localhost:3001/api/sets/unassign-by-folder/${pendingDeleteId}`
-      );
-      await axios.delete(
-        `http://localhost:3001/api/folders/${pendingDeleteId}`
-      );
+      await api.put(`/sets/unassign-by-folder/${pendingDeleteId}`);
+      await api.del(`/folders/${pendingDeleteId}`); // NOTE: helper uses .del
       setFolders((prev) => prev.filter((f) => f.id !== pendingDeleteId));
       setModalOpen(false);
       setPendingDeleteId(null);
@@ -164,7 +158,6 @@ export default function Sidebar({ isOpen, onClose }) {
         {/* Add Folder Section */}
         <div className="mt-3">
           {!showAddInput ? (
-            // Cream chip style for secondary action
             <button
               onClick={() => setShowAddInput(true)}
               className="mx-3 mt-3 inline-flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg border hover:opacity-90"

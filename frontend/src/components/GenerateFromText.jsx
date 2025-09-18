@@ -1,14 +1,15 @@
-import React, { useState, useEffect, useMemo } from "react";
-import axios from "axios";
+import React, { useState, useEffect } from "react";
 import { FiPlus, FiSave, FiFolder, FiFileText } from "react-icons/fi";
+import { api } from "../api";
 
 function DotsLoader({ label = "Working", active }) {
   const [dots, setDots] = useState("");
   useEffect(() => {
     if (!active) return;
-    const id = setInterval(() => {
-      setDots((d) => (d.length >= 3 ? "" : d + "."));
-    }, 300);
+    const id = setInterval(
+      () => setDots((d) => (d.length >= 3 ? "" : d + ".")),
+      300
+    );
     return () => clearInterval(id);
   }, [active]);
   return (
@@ -32,8 +33,8 @@ export default function GenerateFromText() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await axios.get("http://localhost:3001/api/folders");
-        setFolders(res.data || []);
+        const res = await api.get("/folders");
+        setFolders(res || []);
       } catch (e) {
         console.error("Failed to fetch folders:", e);
       }
@@ -52,12 +53,9 @@ export default function GenerateFromText() {
     setLoading(true);
     setError("");
     try {
-      const res = await axios.post(
-        "http://localhost:3001/api/flashcards/generate",
-        { text: inputText }
-      );
-      setFlashcards(res.data.flashcards || []);
-      if ((res.data.flashcards || []).length === 0) {
+      const res = await api.post("/flashcards/generate", { text: inputText });
+      setFlashcards(res?.flashcards || []);
+      if ((res?.flashcards || []).length === 0) {
         setError("No cards were generated. Try adding more context.");
       }
     } catch (e) {
@@ -77,14 +75,14 @@ export default function GenerateFromText() {
     setSaving(true);
     setError("");
     try {
-      const createSetRes = await axios.post("http://localhost:3001/api/sets", {
+      const createdSet = await api.post("/sets", {
         name: setName.trim(),
         folder_id: selectedFolderId || null,
       });
-      const setId = createSetRes.data.id;
+      const setId = createdSet.id;
       await Promise.all(
         flashcards.map((card) =>
-          axios.post("http://localhost:3001/api/flashcards", {
+          api.post("/flashcards", {
             question: card.question,
             answer: card.answer,
             set_id: setId,

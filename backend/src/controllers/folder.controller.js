@@ -61,8 +61,6 @@ const deleteFolder = async (req, res) => {
   const db = req.app.locals.db;
 
   try {
-    await db.query("DELETE FROM flashcards WHERE id = $1", [id]);
-
     const result = await db.query(
       "DELETE FROM folders WHERE id = $1 RETURNING *",
       [id]

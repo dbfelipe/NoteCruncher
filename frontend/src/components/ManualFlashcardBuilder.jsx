@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import { api } from "../api";
 
 function ManualFlashcardBuilder() {
-  const [flashcards, setFlashcards] = useState([]);
-  const [newQuestion, setNewQuestion] = useState("");
-  const [newAnswer, setNewAnswer] = useState("");
   const [setName, setSetName] = useState("");
   const [folders, setFolders] = useState([]);
   const [folderId, setFolderId] = useState("");
@@ -17,8 +14,8 @@ function ManualFlashcardBuilder() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await axios.get("http://localhost:3001/api/folders");
-        setFolders(res.data || []);
+        const res = await api.get("/folders");
+        setFolders(res || []);
       } catch (e) {
         console.error("Folder fetch failed:", e);
       }
@@ -49,22 +46,25 @@ function ManualFlashcardBuilder() {
         answer: (c.answer || "").trim(),
       }))
       .filter((c) => c.question && c.answer);
+
     if (cleaned.length === 0) {
       setError(
         "Add at least one flashcard with both a question and an answer."
       );
       return;
     }
+
     setSaving(true);
     try {
-      const setRes = await axios.post("http://localhost:3001/api/sets", {
+      const setRes = await api.post("/sets", {
         name: setName.trim(),
         folder_id: folderId || null,
       });
-      const setId = setRes.data.id;
+      const setId = setRes.id;
+
       await Promise.all(
         cleaned.map((c) =>
-          axios.post("http://localhost:3001/api/flashcards", {
+          api.post("/flashcards", {
             question: c.question,
             answer: c.answer,
             set_id: setId,
@@ -140,7 +140,6 @@ function ManualFlashcardBuilder() {
       </header>
 
       <main className="w-full space-y-4">
-        {" "}
         {cards.map((c, i) => (
           <div
             key={i}

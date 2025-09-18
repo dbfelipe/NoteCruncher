@@ -1,34 +1,92 @@
-import { fetchAuthSession } from "aws-amplify/auth";
+// api.js
+import {
+  fetchAuthSession,
+  getCurrentUser,
+  signInWithRedirect,
+} from "aws-amplify/auth";
 
-const API_BASE = "http://localhost:3001/api"; // your Express server
+const API_BASE = "http://localhost:3001/api";
 
-async function getAccessToken() {
-  const { tokens } = await fetchAuthSession();
+async function getAccessToken(forceRefresh = false) {
+  const { tokens } = await fetchAuthSession({ forceRefresh });
   return tokens?.accessToken?.toString() ?? null;
 }
 
-async function request(path, options = {}) {
-  const token = await getAccessToken();
-  if (!token) throw new Error("Not signed in");
+// Only redirect if truly signed out; otherwise try a one-time refresh.
+async function ensureAccessToken() {
+  let token = await getAccessToken(false);
+  if (token) return token;
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
+  // If a user is present, try refreshing instead of redirecting
+  try {
+    await getCurrentUser(); // throws if signed out
+    token = await getAccessToken(true);
+    if (token) return token;
+  } catch {
+    // not signed in
+  }
+
+  // Truly signed out → kick off Hosted UI once
+  await signInWithRedirect({ provider: "Cognito" });
+  throw new Error("Not authenticated");
+}
+
+async function request(path, { method = "GET", body, headers = {} } = {}) {
+  // 1) get/refresh token
+  let token = await ensureAccessToken();
+
+  // 2) do the call
+  let res = await fetch(`${API_BASE}${path}`, {
+    method,
     headers: {
-      "Content-Type": "application/json",
+      ...(body instanceof FormData
+        ? {}
+        : { "Content-Type": "application/json" }),
       Authorization: `Bearer ${token}`,
-      ...(options.headers || {}),
+      ...headers,
     },
+    body: body
+      ? body instanceof FormData
+        ? body
+        : JSON.stringify(body)
+      : undefined,
   });
 
+  // 3) if unauthorized, try exactly once with a forced refresh (no redirect)
+  if (res.status === 401) {
+    token = await getAccessToken(true);
+    if (!token) throw new Error("Unauthorized");
+    res = await fetch(`${API_BASE}${path}`, {
+      method,
+      headers: {
+        ...(body instanceof FormData
+          ? {}
+          : { "Content-Type": "application/json" }),
+        Authorization: `Bearer ${token}`,
+        ...headers,
+      },
+      body: body
+        ? body instanceof FormData
+          ? body
+          : JSON.stringify(body)
+        : undefined,
+    });
+  }
+
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+
+  // Some endpoints may return 204/empty
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
 }
 
 export const api = {
   get: (path) => request(path),
-  post: (path, body) =>
-    request(path, { method: "POST", body: JSON.stringify(body) }),
-  put: (path, body) =>
-    request(path, { method: "PUT", body: JSON.stringify(body) }),
+  post: (path, body) => request(path, { method: "POST", body }),
+  put: (path, body) => request(path, { method: "PUT", body }),
+  patch: (path, body) => request(path, { method: "PATCH", body }),
   del: (path) => request(path, { method: "DELETE" }),
+
+  // Optional convenience for uploads (FormData)
+  upload: (path, formData) => request(path, { method: "POST", body: formData }),
 };
