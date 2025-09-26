@@ -7,12 +7,13 @@ const toIntOrNull = (v) => {
 };
 
 const getAllSets = async (req, res) => {
+  const db = req.app.locals.db;
+  const userId = req.userId; // <- set by ensureDbUser
   const folderId = req.query.folder_id
     ? toIntOrNull(req.query.folder_id)
     : null;
   const limit = toIntOrNull(req.query.limit) ?? 100;
   const offset = toIntOrNull(req.query.offset) ?? 0;
-  const db = req.app.locals.db;
 
   try {
     if (folderId !== null) {
@@ -21,14 +22,14 @@ const getAllSets = async (req, res) => {
                WHERE folder_id = $1
                ORDER BY created_at DESC
                LIMIT $2 OFFSET $3`,
-        [folderId, limit, offset]
+        [userId, folderId, limit, offset]
       );
     } else {
       result = await db.query(
         `SELECT * FROM sets
                ORDER BY created_at DESC
                LIMIT $1 OFFSET $2`,
-        [limit, offset]
+        [userId, limit, offset]
       );
     }
 
@@ -41,18 +42,31 @@ const getAllSets = async (req, res) => {
 
 const createSet = async (req, res) => {
   const { name, folder_id } = req.body;
+  const db = req.app.locals.db;
+  const userId = req.userId;
+
   if (!name || !name.trim()) {
     return res.status(400).json({ error: "Set name is required" });
   }
   const folderId = folder_id === undefined ? null : toIntOrNull(folder_id);
 
   try {
-    const db = req.app.locals.db;
+    // If attaching to a folder, ensure that folder belongs to the user.
+    if (folderId !== null) {
+      const { rows: f } = await db.query(
+        `SELECT id FROM folders WHERE id = $1 AND owner_id = $2`,
+        [folderId, userId]
+      );
+      if (f.length === 0) {
+        return res.status(404).json({ error: "Folder not found" });
+      }
+    }
+
     const result = await db.query(
       `INSERT INTO sets (name, folder_id)
          VALUES ($1, $2)
          RETURNING *`,
-      [name.trim(), folderId]
+      [name.trim(), folderId, userId]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -66,39 +80,62 @@ const createSet = async (req, res) => {
 };
 
 const updateSet = async (req, res) => {
+  const db = req.app.locals.db;
+  const userId = req.userId;
   const id = toIntOrNull(req.params.id);
   if (id === null) return res.status(400).json({ error: "Invalid set id" });
 
   const { name, folder_id } = req.body;
-
-  // If provided, validate
   if (name !== undefined && !name.trim()) {
     return res.status(400).json({ error: "Set name cannot be empty" });
   }
+
+  // folder_id can be number, null, or undefined (no change)
   const folderId = folder_id === undefined ? undefined : toIntOrNull(folder_id);
 
   try {
-    const db = req.app.locals.db;
+    // Ensure the set belongs to this user
+    const { rows: s } = await db.query(
+      `SELECT id, folder_id FROM sets WHERE id = $1 AND owner_id = $2`,
+      [id, userId]
+    );
+    if (s.length === 0) return res.status(404).json({ error: "Set not found" });
+
+    // If changing folder_id (including null), validate the target folder belongs to user
+    if (folder_id !== undefined && folder_id !== null) {
+      const { rows: f } = await db.query(
+        `SELECT id FROM folders WHERE id = $1 AND owner_id = $2`,
+        [folderId, userId]
+      );
+      if (f.length === 0) {
+        return res.status(404).json({ error: "Folder not found" });
+      }
+    }
+
     const result = await db.query(
-      `UPDATE sets
-            SET name = COALESCE($1, name),
-                folder_id = CASE
-                              WHEN $2::int IS NULL AND $3::boolean = true THEN NULL
-                              WHEN $2::int IS NOT NULL THEN $2::int
-                              ELSE folder_id
-                            END
-          WHERE id = $4
-          RETURNING *`,
+      `
+      UPDATE sets
+      SET name = COALESCE($1, name),
+          folder_id = CASE
+            WHEN $2::int IS NULL AND $3::boolean = true THEN NULL
+            WHEN $2::int IS NOT NULL THEN $2::int
+            ELSE folder_id
+          END
+      WHERE id = $4 AND owner_id = $5
+      RETURNING *
+      `,
       [
         name ? name.trim() : null,
         folderId ?? null,
-        folder_id === null, // allow explicit nulling of folder_id
+        folder_id === null, // explicit nulling
         id,
+        userId,
       ]
     );
 
-    if (!result.rows[0])
+    if (result.rows.length === 0)
       return res.status(404).json({ error: "Set not found" });
+
     res.json(result.rows[0]);
   } catch (err) {
     if (err.code === "23505") {
@@ -111,14 +148,23 @@ const updateSet = async (req, res) => {
 
 const getFlashcardsInSet = async (req, res) => {
   const db = req.app.locals.db;
-  const setId = Number(req.params.id);
-  if (!Number.isFinite(setId)) {
+  const userId = req.userId;
+  const setId = toIntOrNull(req.params.id);
+  if (setId === null) {
     return res.status(400).json({ error: "Invalid set id" });
   }
   try {
+    // Verify the set belongs to the user, then fetch flashcards
+    const { rows: owned } = await db.query(
+      `SELECT id FROM sets WHERE id = $1 AND owner_id = $2`,
+      [setId, userId]
+    );
+    if (owned.length === 0)
+      return res.status(404).json({ error: "Set not found" });
+
     const result = await db.query(
-      `SELECT * FROM flashcards WHERE set_id = $1 ORDER BY created_at DESC`,
-      [setId]
+      `SELECT * FROM flashcards WHERE set_id = $1 AND owner_id = $2 ORDER BY created_at DESC`,
+      [setId, userId]
     );
     res.status(200).json(result.rows);
   } catch (err) {
@@ -126,19 +172,19 @@ const getFlashcardsInSet = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
-
 // ON DELETE CASCADE (fl ashcards.set_id) will remove its flashcards automatically
 const deleteSet = async (req, res) => {
+  const db = req.app.locals.db;
+  const userId = req.userId;
   const id = toIntOrNull(req.params.id);
   if (id === null) return res.status(400).json({ error: "Invalid set id" });
 
   try {
-    const db = req.app.locals.db;
     const result = await db.query(
-      `DELETE FROM sets WHERE id = $1 RETURNING *`,
-      [id]
+      `DELETE FROM sets WHERE id = $1 AND owner_id = $2 RETURNING *`,
+      [id, userId]
     );
-    if (!result.rows[0])
+    if (result.rows.length === 0)
       return res.status(404).json({ error: "Set not found" });
     res.status(200).json(result.rows[0]);
   } catch (err) {
@@ -147,15 +193,34 @@ const deleteSet = async (req, res) => {
   }
 };
 
+// Only allows assigning a folder that belongs to the user, to a set that belongs to the user.
 const assignFolderToSet = async (req, res) => {
-  const { setId } = req.params;
-  const { folder_id } = req.body;
   const db = req.app.locals.db;
+  const userId = req.userId;
+  const setId = toIntOrNull(req.params.setId);
+  const folderId = toIntOrNull(req.body.folder_id);
+
+  if (setId === null || folderId === null) {
+    return res.status(400).json({ error: "Invalid ids" });
+  }
 
   try {
+    const { rows: s } = await db.query(
+      `SELECT id FROM sets WHERE id = $1 AND owner_id = $2`,
+      [setId, userId]
+    );
+    if (s.length === 0) return res.status(404).json({ error: "Set not found" });
+
+    const { rows: f } = await db.query(
+      `SELECT id FROM folders WHERE id = $1 AND owner_id = $2`,
+      [folderId, userId]
+    );
+    if (f.length === 0)
+      return res.status(404).json({ error: "Folder not found" });
+
     const result = await db.query(
-      "UPDATE sets SET folder_id = $1 WHERE id = $2 RETURNING *",
-      [folder_id, setId]
+      `UPDATE sets SET folder_id = $1 WHERE id = $2 AND owner_id = $3 RETURNING *`,
+      [folderId, setId, userId]
     );
     res.json(result.rows[0]);
   } catch (err) {
@@ -166,9 +231,15 @@ const assignFolderToSet = async (req, res) => {
 
 const getUnassignedSets = async (req, res) => {
   const db = req.app.locals.db;
+  const userId = req.userId;
   try {
     const result = await db.query(
-      "SELECT * FROM sets WHERE folder_id IS NULL ORDER BY created_at DESC"
+      `
+      SELECT * FROM sets
+      WHERE owner_id = $1 AND folder_id IS NULL
+      ORDER BY created_at DESC
+      `,
+      [userId]
     );
     res.json(result.rows);
   } catch (err) {
@@ -177,14 +248,32 @@ const getUnassignedSets = async (req, res) => {
   }
 };
 
+// Only unassign sets from a folder if both belong to the user.
 const unassignSetsFromFolder = async (req, res) => {
-  const { folderId } = req.params;
   const db = req.app.locals.db;
+  const userId = req.userId;
+  const folderId = toIntOrNull(req.params.folderId);
+  if (folderId === null) {
+    return res.status(400).json({ error: "Invalid folder id" });
+  }
 
   try {
+    // Ensure folder belongs to user
+    const { rows: f } = await db.query(
+      `SELECT id FROM folders WHERE id = $1 AND owner_id = $2`,
+      [folderId, userId]
+    );
+    if (f.length === 0)
+      return res.status(404).json({ error: "Folder not found" });
+
     const result = await db.query(
-      "UPDATE sets SET folder_id = NULL WHERE folder_id = $1 RETURNING *",
-      [folderId]
+      `
+      UPDATE sets
+      SET folder_id = NULL
+      WHERE folder_id = $1 AND owner_id = $2
+      RETURNING *
+      `,
+      [folderId, userId]
     );
     res.status(200).json(result.rows);
   } catch (err) {

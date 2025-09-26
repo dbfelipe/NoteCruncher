@@ -8,6 +8,7 @@ const flashcardRoutes = require("./routes/flashcard.routes");
 const folderRoutes = require("./routes/folder.routes");
 const setRoutes = require("./routes/set.routes");
 const { requireAuth } = require("./middleware/auth");
+const ensureDbUser = require("./middleware/ensureDbUser");
 
 require("dotenv").config();
 
@@ -58,6 +59,14 @@ const pool = process.env.DATABASE_URL
 app.locals.db = pool;
 //Routes
 app.use("/api/videos", videoRoutes);
+
+//Mounting all routes that should be per user
+const db = app.locals.db;
+app.use("/api/folders", requireAuth, ensureDbUser(db));
+app.use("/api/sets", requireAuth, ensureDbUser(db));
+app.use("/api/flashcards", requireAuth, ensureDbUser(db));
+
+// ..then existing routeres
 app.use("/api/flashcards", flashcardRoutes);
 app.use("/api/folders", requireAuth, folderRoutes);
 app.use("/api/sets", requireAuth, setRoutes);
