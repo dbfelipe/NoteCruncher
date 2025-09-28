@@ -8,7 +8,7 @@ const toIntOrNull = (v) => {
 
 const getAllSets = async (req, res) => {
   const db = req.app.locals.db;
-  const userId = req.userId; // <- set by ensureDbUser
+  const userId = req.userId; // set by auth middleware
   const folderId = req.query.folder_id
     ? toIntOrNull(req.query.folder_id)
     : null;
@@ -16,19 +16,25 @@ const getAllSets = async (req, res) => {
   const offset = toIntOrNull(req.query.offset) ?? 0;
 
   try {
+    let result;
     if (folderId !== null) {
       result = await db.query(
-        `SELECT * FROM sets
-               WHERE folder_id = $1
-               ORDER BY created_at DESC
-               LIMIT $2 OFFSET $3`,
+        `
+        SELECT * FROM sets
+        WHERE owner_id = $1 AND folder_id = $2
+        ORDER BY created_at DESC
+        LIMIT $3 OFFSET $4
+        `,
         [userId, folderId, limit, offset]
       );
     } else {
       result = await db.query(
-        `SELECT * FROM sets
-               ORDER BY created_at DESC
-               LIMIT $1 OFFSET $2`,
+        `
+        SELECT * FROM sets
+        WHERE owner_id = $1
+        ORDER BY created_at DESC
+        LIMIT $2 OFFSET $3
+        `,
         [userId, limit, offset]
       );
     }
@@ -63,15 +69,17 @@ const createSet = async (req, res) => {
     }
 
     const result = await db.query(
-      `INSERT INTO sets (name, folder_id)
-         VALUES ($1, $2)
-         RETURNING *`,
+      `
+      INSERT INTO sets (name, folder_id, owner_id)
+      VALUES ($1, $2, $3)
+      RETURNING *
+      `,
       [name.trim(), folderId, userId]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
     if (err.code === "23505") {
-      // unique violation on sets.name
+      // unique violation (e.g., unique name per user/folder if constraint exists)
       return res.status(409).json({ error: "Set already exists" });
     }
     console.error("Error creating set:", err);
@@ -163,7 +171,11 @@ const getFlashcardsInSet = async (req, res) => {
       return res.status(404).json({ error: "Set not found" });
 
     const result = await db.query(
-      `SELECT * FROM flashcards WHERE set_id = $1 AND owner_id = $2 ORDER BY created_at DESC`,
+      `
+      SELECT * FROM flashcards
+      WHERE set_id = $1 AND owner_id = $2
+      ORDER BY created_at DESC
+      `,
       [setId, userId]
     );
     res.status(200).json(result.rows);
