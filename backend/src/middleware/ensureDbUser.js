@@ -1,29 +1,30 @@
+// ensureDbUser.js
 module.exports = function ensureDbUser(db) {
+  if (!db) throw new Error("ensureDbUser requires a db pool");
+
   return async function (req, res, next) {
     try {
-      // req.user is set by your requireAuth (Cognito access token)
-      const { sub, username, email: tokenEmail } = req.user || {};
-      if (!sub) return res.status(401).json({ error: "Missing sub" });
-
-      const email =
-        tokenEmail ||
-        (username ? `${username}@example.com` : "unknown@example.com");
+      const u = req.user;
+      if (!u || !u.sub) return res.status(401).json({ error: "Unauthorized" });
 
       const { rows } = await db.query(
         `
-          INSERT INTO users (sub, email)
-          VALUES ($1, $2)
-          ON CONFLICT (sub) DO UPDATE SET email = EXCLUDED.email
-          RETURNING id
-          `,
-        [sub, email]
+        INSERT INTO users (id, sub, email)
+        VALUES ($1, $1, COALESCE($2, ''))
+        ON CONFLICT (id) DO UPDATE
+          SET
+            sub   = COALESCE(users.sub, EXCLUDED.sub),
+            email = COALESCE(EXCLUDED.email, users.email)
+        RETURNING id
+        `,
+        [u.sub, u.email || null]
       );
 
-      req.userId = rows[0].id; // <- use this in controllers
+      req.userId = rows[0].id;
       next();
-    } catch (e) {
-      console.error("ensureDbUser failed:", e);
-      res.status(500).json({ error: "User bootstrap failed" });
+    } catch (err) {
+      console.error("ensureDbUser failed:", err);
+      res.status(500).json({ error: "Internal Server Error" });
     }
   };
 };

@@ -37,8 +37,10 @@ Only return the JSON array.
 const getAllFlashcards = async (req, res) => {
   try {
     const db = req.app.locals.db;
+    const userId = req.userId;
     const result = await db.query(
-      "SELECT * FROM flashcards ORDER BY created_at DESC"
+      "SELECT * FROM flashcards WHERE owner_id = $1 ORDER BY created_at DESC",
+      [userId]
     );
     res.json(result.rows);
   } catch (error) {
@@ -51,6 +53,8 @@ const createFlashcard = async (req, res) => {
   try {
     const { question, answer, set_id } = req.body;
     const db = req.app.locals.db;
+    const userId = req.userId;
+
     if (!question || !answer) {
       return res
         .status(400)
@@ -61,9 +65,23 @@ const createFlashcard = async (req, res) => {
         .status(400)
         .json({ error: "set_id is required to save to a set" });
     }
+
+    // Ensure the set exists and belongs to the user
+    const { rows: s } = await db.query(
+      `SELECT id FROM sets WHERE id = $1 AND owner_id = $2`,
+      [set_id, userId]
+    );
+    if (s.length === 0) {
+      return res.status(404).json({ error: "Set not found" });
+    }
+
     const result = await db.query(
-      "INSERT INTO flashcards (question, answer, set_id) VALUES ($1, $2, $3) RETURNING *",
-      [question, answer, set_id]
+      `
+      INSERT INTO flashcards (question, answer, set_id, owner_id)
+      VALUES ($1, $2, $3, $4)
+      RETURNING *
+      `,
+      [question, answer, set_id, userId]
     );
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -77,10 +95,24 @@ const updateFlashcard = async (req, res) => {
     const { id } = req.params;
     const { question, answer } = req.body;
     const db = req.app.locals.db;
+    const userId = req.userId;
+
     const result = await db.query(
-      "UPDATE flashcards SET question = $1, answer = $2, updated_at = NOW() WHERE id = $3 RETURNING *",
-      [question, answer, id]
+      `
+      UPDATE flashcards
+      SET question = COALESCE($1, question),
+          answer = COALESCE($2, answer),
+          updated_at = NOW()
+      WHERE id = $3 AND owner_id = $4
+      RETURNING *
+      `,
+      [question ?? null, answer ?? null, id, userId]
     );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Flashcard not found" });
+    }
+
     res.json(result.rows[0]);
   } catch (error) {
     console.error("Error updating flashcard", error);
@@ -89,14 +121,16 @@ const updateFlashcard = async (req, res) => {
 };
 
 const deleteFlashcard = async (req, res) => {
-  console.log("DELETE /api/flashcards/:id hit with", req.params.id);
   try {
     const { id } = req.params;
     const db = req.app.locals.db;
+    const userId = req.userId;
+
     const result = await db.query(
-      "DELETE FROM flashcards WHERE id = $1 RETURNING *",
-      [id]
+      "DELETE FROM flashcards WHERE id = $1 AND owner_id = $2 RETURNING *",
+      [id, userId]
     );
+
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Flashcard not found" });
     }
