@@ -5,8 +5,6 @@ import {
   signInWithRedirect,
 } from "aws-amplify/auth";
 
-const API_BASE = "http://localhost:3001/api";
-
 async function getAccessToken(forceRefresh = false) {
   const { tokens } = await fetchAuthSession({ forceRefresh });
   return tokens?.accessToken?.toString() ?? null;
@@ -79,6 +77,24 @@ async function request(path, { method = "GET", body, headers = {} } = {}) {
   const text = await res.text();
   return text ? JSON.parse(text) : null;
 }
+
+function resolveApiBase() {
+  // Vite (import.meta.env.*)
+  const viteUrl =
+    typeof import.meta !== "undefined" &&
+    import.meta &&
+    import.meta.env &&
+    import.meta.env.VITE_API_URL;
+
+  // CRA (process.env.REACT_APP_*)
+  const craUrl =
+    typeof process !== "undefined" && process.env?.REACT_APP_API_BASE_URL;
+
+  // Final: vite > cra > default local
+  return (viteUrl || craUrl || "http://localhost:3001") + "/api";
+}
+
+export const API_BASE = resolveApiBase();
 
 export const api = {
   get: (path) => request(path),

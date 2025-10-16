@@ -2,27 +2,25 @@
 module.exports = function ensureDbUser(db) {
   return async function (req, res, next) {
     try {
-      const u = req.user;
+      const u = req.user; // set by requireAuth
       if (!u?.sub) return res.status(401).json({ error: "Unauthorized" });
 
-      const id = u.sub; // uuid (string format)
-      const sub = u.sub; // same uuid
-      const email = u.email || "";
+      const sub = u.sub; // Cognito subject (stable identifier)
+      const email = u.email || null; // access tokens may not include email
 
+      // Upsert by SUB, not by ID; let DB generate/keep the UUID id.
       const { rows } = await db.query(
         `
-        INSERT INTO users (id, sub, email)
-        VALUES ($1::uuid, $2::uuid, $3::text)
-        ON CONFLICT (id) DO UPDATE
-          SET
-            sub   = COALESCE(users.sub, EXCLUDED.sub),
-            email = COALESCE(NULLIF(EXCLUDED.email, ''), users.email)
+        INSERT INTO users (sub, email)
+        VALUES ($1::text, $2::text)
+        ON CONFLICT (sub) DO UPDATE
+          SET email = COALESCE(EXCLUDED.email, users.email)
         RETURNING id
         `,
-        [id, sub, email]
+        [sub, email]
       );
 
-      req.userId = rows[0].id;
+      req.userId = rows[0].id; // UUID from users.id
       next();
     } catch (err) {
       console.error("ensureDbUser failed:", err);

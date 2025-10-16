@@ -4,7 +4,11 @@ frontend/node_modules/
 
 # Environment variables
 backend/.env
+backend/.env.local
+backend/.env.production
 frontend/.env
+frontend/.env.local
+frontend/.env.production
 
 # Database
 backend/data/

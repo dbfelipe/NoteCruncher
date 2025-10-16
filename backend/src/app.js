@@ -18,10 +18,19 @@ const ensureDbUser = require("./middleware/ensureDbUser");
 const app = express();
 
 // Security & core middleware
+
+const allowed = [
+  "http://localhost:3000", // local frontend
+  "https://YOUR-FRONTEND-DOMAIN", // prod frontend (no trailing slash)
+];
+
 app.use(helmet());
 app.use(
   cors({
-    origin: ["http://localhost:3000", "https://YOUR-frontend-domain.com"],
+    origin(origin, cb) {
+      if (!origin || allowed.includes(origin)) return cb(null, true);
+      return cb(new Error("CORS: origin not allowed"), false);
+    },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
