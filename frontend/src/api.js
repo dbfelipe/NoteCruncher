@@ -17,7 +17,8 @@ function isLocalhost() {
 function resolveApiBase() {
   // Read Vite env at build time (preferred)
   const viteBase =
-    typeof import.meta !== "undefined" && import.meta?.env?.VITE_API_URL;
+    (typeof import.meta !== "undefined" && import.meta?.env?.VITE_API_URL) ||
+    "https://notecrunch-backend.onrender.com"; // <- prod default
 
   // Optional CRA compatibility (if you still ever build with CRA)
   const craBase =
@@ -37,7 +38,7 @@ function resolveApiBase() {
   return `${base}/api`;
 }
 
-export const API_BASE = resolveApiBase();
+export const API_BASE = `${base}/api`;
 // Optional: log once so you can confirm in console on Vercel builds
 if (typeof window !== "undefined") {
   console.log("[api] Using API_BASE:", API_BASE);
