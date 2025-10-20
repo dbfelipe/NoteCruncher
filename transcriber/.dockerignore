@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+venv/
+.env
+*.mp3
+*.wav
+*.m4a
+tests/
+.git
+.gitignore
+node_modules/
+frontend/
+backend/
