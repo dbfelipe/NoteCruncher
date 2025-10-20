@@ -4,7 +4,6 @@ const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 require("dotenv").config();
-const fetch = require("node-fetch");
 
 const { pool } = require("./db"); // <- single shared pool
 const videoRoutes = require("./routes/video.routes");
