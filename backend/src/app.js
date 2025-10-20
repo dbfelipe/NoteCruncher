@@ -4,6 +4,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 require("dotenv").config();
+const fetch = require("node-fetch");
 
 const { pool } = require("./db"); // <- single shared pool
 const videoRoutes = require("./routes/video.routes");
@@ -60,6 +61,37 @@ app.get("/api/health/db", async (_req, res) => {
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ ok: false, error: String(e) });
+  }
+});
+
+app.post("/api/transcribe", async (req, res) => {
+  try {
+    const { url } = req.body;
+    if (!url) return res.status(400).json({ error: "Missing URL" });
+
+    const transcriberUrl = process.env.TRANSCRIBER_URL;
+    const secret = process.env.TRANSCRIBER_SHARED_SECRET;
+
+    // Send URL to your transcriber (if transcriber expects an uploaded file, adjust accordingly)
+    const response = await fetch(`${transcriberUrl}/transcribe`, {
+      method: "POST",
+      headers: {
+        "x-secret": secret,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ source_type: "youtube", url }),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Transcriber error ${response.status}: ${text}`);
+    }
+
+    const result = await response.json();
+    res.json(result);
+  } catch (err) {
+    console.error("Transcriber error:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
