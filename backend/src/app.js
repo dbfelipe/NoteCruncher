@@ -19,10 +19,10 @@ const app = express();
 
 // Security & core middleware
 
-const allowed = [
-  "http://localhost:3000", // local frontend
-  "https://YOUR-FRONTEND-DOMAIN", // prod frontend (no trailing slash)
-];
+const allowed = (process.env.ALLOWED_ORIGINS || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
 
 app.use(helmet());
 app.use(
