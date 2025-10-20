@@ -14,7 +14,7 @@ function isLocalhost() {
   );
 }
 
-function resolveApiBase() {
+/* function resolveApiBase() {
   // Read Vite env at build time (preferred)
   const viteBase =
     (typeof import.meta !== "undefined" && import.meta?.env?.VITE_API_URL) ||
@@ -36,9 +36,16 @@ function resolveApiBase() {
   // In dev, allow fallback to your local backend
   const base = (chosen || "http://localhost:3001").replace(/\/+$/, "");
   return `${base}/api`;
-}
+}*/
 
+const viteBase =
+  (typeof import.meta !== "undefined" && import.meta?.env?.VITE_API_URL) ||
+  "https://notecrunch-backend.onrender.com"; // <- prod default
+
+// ...then as before:
+const base = (viteBase || "http://localhost:3001").replace(/\/+$/, "");
 export const API_BASE = `${base}/api`;
+
 // Optional: log once so you can confirm in console on Vercel builds
 if (typeof window !== "undefined") {
   console.log("[api] Using API_BASE:", API_BASE);
