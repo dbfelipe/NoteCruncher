@@ -9,8 +9,14 @@ Amplify.configure({
         oauth: {
           domain: "us-east-10t8loejmq.auth.us-east-1.amazoncognito.com",
           scopes: ["openid", "email", "profile"],
-          redirectSignIn: ["http://localhost:3000/callback"],
-          redirectSignOut: ["http://localhost:3000/"],
+          redirectSignIn: [
+            "http://localhost:3000/callback",
+            "https://notecruncher-frontend.vercel.app/callback",
+          ],
+          redirectSignOut: [
+            "http://localhost:3000/",
+            "https://notecruncher-frontend.vercel.app/",
+          ],
           responseType: "code", // Authorization Code + PKCE
         },
       },
