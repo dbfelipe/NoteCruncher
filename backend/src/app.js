@@ -63,7 +63,7 @@ app.get("/api/health/db", async (_req, res) => {
   }
 });
 
-app.post("/api/transcribe", async (req, res) => {
+/* app.post("/api/transcribe", async (req, res) => {
   try {
     const { url } = req.body;
     if (!url) return res.status(400).json({ error: "Missing URL" });
@@ -92,7 +92,7 @@ app.post("/api/transcribe", async (req, res) => {
     console.error("Transcriber error:", err);
     res.status(500).json({ error: err.message });
   }
-});
+}); */
 
 // Error handler
 app.use((err, _req, res, _next) => {
