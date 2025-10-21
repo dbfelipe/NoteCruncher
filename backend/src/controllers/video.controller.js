@@ -45,71 +45,112 @@ const getSummaryById = async (req, res) => {
 };
 
 //Function to process a video URL
-const processVideo = async (req, res) => {
-  const { url } = req.body;
+async function downloadAudioToFile(youtubeUrl, outPath) {
+  await new Promise((resolve, reject) => {
+    const ws = fs.createWriteStream(outPath);
+    ytdl(youtubeUrl, { filter: "audioonly", quality: "highestaudio" })
+      .on("error", reject)
+      .pipe(ws)
+      .on("finish", resolve)
+      .on("error", reject);
+  });
+}
+
+exports.processVideo = async (req, res) => {
+  const { url } = req.body || {};
   if (!url) return res.status(400).json({ error: "YouTube URL is required." });
 
-  const videoId = uuidv4();
+  const id = uuidv4();
   const uploadDir = path.join(__dirname, "..", "uploads");
+  const audioExt = "webm";
+  const audioPath = path.join(uploadDir, `${id}.${audioExt}`);
+
+  // Ensure env looks sane
+  if (!TRANSCRIBER_URL || !TRANSCRIBER_SHARED_SECRET) {
+    console.error(
+      "[youtube] Missing TRANSCRIBER_URL or TRANSCRIBER_SHARED_SECRET"
+    );
+    return res
+      .status(500)
+      .json({ error: "Server misconfigured (transcriber env)." });
+  }
 
   try {
     // Ensure uploads dir exists
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
+    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+    // Optional: cap length to avoid huge downloads
+    try {
+      const info = await ytdl.getInfo(url);
+      const secs = Number(info?.videoDetails?.lengthSeconds || 0);
+      console.log(
+        `[youtube] title="${info?.videoDetails?.title}" length=${secs}s`
+      );
+      if (secs > 60 * 60) {
+        return res
+          .status(400)
+          .json({ error: "Video too long (limit 60 minutes)." });
+      }
+    } catch (e) {
+      console.warn(
+        "[youtube] getInfo failed; continuing to attempt download:",
+        e?.message
+      );
     }
 
-    // Optional: check video length to avoid huge downloads (e.g., > 60 min)
-    const info = await ytdl.getInfo(url);
-    const secs = Number(info.videoDetails.lengthSeconds || 0);
-    if (secs > 60 * 60) {
-      return res
-        .status(400)
-        .json({ error: "Video too long (limit 60 minutes)." });
-    }
+    // Download audio
+    console.log(`[youtube] downloading audio -> ${audioPath}`);
+    await downloadAudioToFile(url, audioPath);
+    const stat = fs.statSync(audioPath);
+    console.log(`[youtube] download complete size=${stat.size} bytes`);
 
-    // Download audio-only stream (webm/m4a) — no ffmpeg needed
-    const audioExt = "webm"; // most audio streams will be webm; whisper accepts webm/m4a
-    const audioPath = path.join(uploadDir, `${videoId}.${audioExt}`);
-
-    await new Promise((resolve, reject) => {
-      const ws = fs.createWriteStream(audioPath);
-      ytdl(url, { filter: "audioonly", quality: "highestaudio" })
-        .on("error", reject)
-        .pipe(ws)
-        .on("finish", resolve)
-        .on("error", reject);
-    });
-
-    // Send to transcriber as multipart/form-data
+    // Send to transcriber as multipart
     const form = new FormData();
     form.append("file", fs.createReadStream(audioPath), `audio.${audioExt}`);
 
-    const whisperRes = await axios.post(`${TRANSCRIBER_URL}/transcribe`, form, {
+    console.log(
+      `[youtube] posting to transcriber: ${TRANSCRIBER_URL}/transcribe`
+    );
+    const r = await axios.post(`${TRANSCRIBER_URL}/transcribe`, form, {
       headers: {
         ...form.getHeaders(),
         "x-secret": TRANSCRIBER_SHARED_SECRET,
       },
-      maxBodyLength: Infinity,
+      maxBodyLength: Infinity, // <-- large uploads
+      timeout: 300000, // <-- 5 min for longer clips/models
+      validateStatus: () => true, // we'll handle manually below
     });
 
-    const transcript = whisperRes.data.text || whisperRes.data.transcript;
-
-    // Generate flashcards
-    const flashcards = await generateFlashcards(transcript);
-
-    // Cleanup
+    // Clean up temp file
     try {
       fs.unlinkSync(audioPath);
     } catch {}
 
-    // Return result
-    return res.status(200).json({
-      source: "youtube",
-      transcript,
-      flashcards,
-    });
+    if (r.status < 200 || r.status >= 300) {
+      const detail =
+        typeof r.data === "string" ? r.data : JSON.stringify(r.data);
+      console.error(`[youtube] transcriber error ${r.status}: ${detail}`);
+      return res.status(502).json({ error: `Transcriber ${r.status}`, detail });
+    }
+
+    const transcript = r.data?.text || r.data?.transcript || "";
+    if (!transcript) {
+      console.error("[youtube] transcriber returned no text field:", r.data);
+      return res
+        .status(502)
+        .json({ error: "Transcriber returned no transcript." });
+    }
+
+    // TODO: replace this with your real flashcard generator
+    // const flashcards = await generateFlashcards(transcript);
+    const flashcards = []; // temporary
+
+    return res.json({ source: "youtube", transcript, flashcards });
   } catch (err) {
-    console.error("Error processing YouTube video:", err);
+    console.error("[youtube] failed:", err?.stack || err?.message || err);
+    try {
+      if (fs.existsSync(audioPath)) fs.unlinkSync(audioPath);
+    } catch {}
     return res.status(500).json({ error: "Failed to process YouTube video." });
   }
 };
