@@ -1,70 +1,59 @@
-# main.py (FastAPI app)
-import os, tempfile, json
-from fastapi import FastAPI, Header, HTTPException
+# main.py
+import os, tempfile
+from fastapi import FastAPI, File, UploadFile, Header, HTTPException
 from pydantic import BaseModel
+from faster_whisper import WhisperModel
 from yt_dlp import YoutubeDL
-import whisper
 
 app = FastAPI()
 
-TRANSCRIBER_SHARED_SECRET = os.environ.get("TRANSCRIBER_SHARED_SECRET", "")
-WHISPER_MODEL = os.environ.get("WHISPER_MODEL", "base")
+SECRET = os.getenv("TRANSCRIBER_SHARED_SECRET", "")
+MODEL_NAME = os.getenv("WHISPER_MODEL", "tiny")  # tiny/base/small/etc.
 
-model = whisper.load_model(WHISPER_MODEL)
+def verify(x_secret: str | None):
+    if SECRET and (x_secret != SECRET):
+        raise HTTPException(status_code=401, detail="unauthorized")
+
+# tiny/base with int8 fits in 512Mi easily
+model = WhisperModel(MODEL_NAME, device="cpu", compute_type="int8")
 
 class UrlBody(BaseModel):
     url: str
 
-def verify_secret(x_secret: str | None):
-    if not TRANSCRIBER_SHARED_SECRET:
-        return
-    if not x_secret or x_secret != TRANSCRIBER_SHARED_SECRET:
-        raise HTTPException(status_code=401, detail="unauthorized")
+@app.get("/health")
+def health():
+    return {"status": "OK"}
+
+@app.post("/transcribe")
+async def transcribe(file: UploadFile = File(...), x_secret: str | None = Header(default=None)):
+    verify(x_secret)
+    with tempfile.NamedTemporaryFile(delete=False) as tmp:
+        tmp.write(await file.read())
+        tmp_path = tmp.name
+    segments, info = model.transcribe(tmp_path)
+    text = "".join(seg.text for seg in segments).strip()
+    return {"text": text}
 
 @app.post("/transcribe_url")
 def transcribe_url(body: UrlBody, x_secret: str | None = Header(default=None)):
-    verify_secret(x_secret)
+    verify(x_secret)
     url = body.url.strip()
     if not (url.startswith("http://") or url.startswith("https://")):
         raise HTTPException(status_code=400, detail="invalid url")
 
-    # Create temp audio path; let yt-dlp extract bestaudio. Since ffmpeg is present,
-    # we can optionally force mp3 via postprocessor (commented).
     with tempfile.TemporaryDirectory() as td:
         outtmpl = os.path.join(td, "audio.%(ext)s")
-        ydl_opts = {
-            "format": "bestaudio/best",
-            "outtmpl": outtmpl,
-            "noprogress": True,
-            "quiet": True,
-            "no_warnings": True,
-            # Uncomment this block if you want guaranteed mp3 output
-            # "postprocessors": [{
-            #     "key": "FFmpegExtractAudio",
-            #     "preferredcodec": "mp3",
-            #     "preferredquality": "192",
-            # }],
-        }
-        try:
-            with YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(url, download=True)
-                filepath = ydl.prepare_filename(info)
-                # If postprocessor ran, extension may have changed; find the file in td
-                if not os.path.exists(filepath):
-                    # try common alternatives
-                    base = os.path.splitext(filepath)[0]
-                    for ext in (".m4a", ".webm", ".mp3", ".opus"):
-                        if os.path.exists(base + ext):
-                            filepath = base + ext
-                            break
-
-            # Transcribe with Whisper
-            result = model.transcribe(filepath)
-            return {
-                "text": result.get("text", ""),
-                "segments": result.get("segments", []),
-            }
-        except Exception as e:
-            # Surface error server-side; return generic message to client
-            print("yt-dlp/whisper failed:", repr(e))
-            raise HTTPException(status_code=500, detail="transcribe_url failed")
+        ydl_opts = {"format": "bestaudio/best", "outtmpl": outtmpl, "noprogress": True, "quiet": True}
+        with YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+            path = ydl.prepare_filename(info)
+            # Pick the actual file (yt-dlp may choose m4a/webm/opus)
+            base, _ = os.path.splitext(path)
+            for ext in (".m4a", ".webm", ".opus", ".mp3"):
+                cand = base + ext
+                if os.path.exists(cand):
+                    path = cand
+                    break
+        segments, info = model.transcribe(path)
+        text = "".join(seg.text for seg in segments).strip()
+        return {"text": text}
