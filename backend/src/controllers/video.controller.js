@@ -50,8 +50,6 @@ const getSummaryById = async (req, res) => {
   }
 };
 
-const axios = require("axios");
-
 const processVideo = async (req, res) => {
   try {
     const { url } = req.body || {};
