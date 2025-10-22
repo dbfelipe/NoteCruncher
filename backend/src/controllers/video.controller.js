@@ -50,86 +50,48 @@ const getSummaryById = async (req, res) => {
   }
 };
 
+const axios = require("axios");
+
 const processVideo = async (req, res) => {
-  const { url } = req.body || {};
-  if (!url) return res.status(400).json({ error: "YouTube URL is required." });
-
-  const id = uuidv4();
-  const uploadDir = path.join(__dirname, "..", "uploads");
-  const audioExt = "webm";
-  const audioPath = path.join(uploadDir, `${id}.${audioExt}`);
-
-  if (!TRANSCRIBER_URL || !TRANSCRIBER_SHARED_SECRET) {
-    console.error(
-      "[youtube] Missing TRANSCRIBER_URL or TRANSCRIBER_SHARED_SECRET"
-    );
-    return res
-      .status(500)
-      .json({ error: "Server misconfigured (transcriber env)." });
-  }
-
   try {
-    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-
-    try {
-      const info = await ytdl.getInfo(url);
-      const secs = Number(info?.videoDetails?.lengthSeconds || 0);
-      console.log(
-        `[youtube] title="${info?.videoDetails?.title}" length=${secs}s`
+    const { url } = req.body || {};
+    if (!url)
+      return res.status(400).json({ error: "YouTube URL is required." });
+    if (!TRANSCRIBER_URL || !TRANSCRIBER_SHARED_SECRET) {
+      console.error(
+        "[youtube] Missing TRANSCRIBER_URL or TRANSCRIBER_SHARED_SECRET"
       );
-      if (secs > 60 * 60) {
-        return res
-          .status(400)
-          .json({ error: "Video too long (limit 60 minutes)." });
-      }
-    } catch (e) {
-      console.warn("[youtube] getInfo failed; continuing:", e?.message);
+      return res
+        .status(500)
+        .json({ error: "Server misconfigured (transcriber env)." });
     }
 
-    console.log(`[youtube] downloading audio -> ${audioPath}`);
-    await downloadAudioToFile(url, audioPath);
-    const stat = fs.statSync(audioPath);
-    console.log(`[youtube] download complete size=${stat.size} bytes`);
-
-    const form = new FormData();
-    form.append("file", fs.createReadStream(audioPath), `audio.${audioExt}`);
-
-    console.log(
-      `[youtube] posting to transcriber: ${TRANSCRIBER_URL}/transcribe`
+    // Ask the transcriber to do the YouTube work
+    const r = await axios.post(
+      `${TRANSCRIBER_URL}/transcribe_url`,
+      { url },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "x-secret": TRANSCRIBER_SHARED_SECRET,
+        },
+        timeout: 300000, // 5 minutes
+        validateStatus: () => true,
+      }
     );
-    const r = await axios.post(`${TRANSCRIBER_URL}/transcribe`, form, {
-      headers: { ...form.getHeaders(), "x-secret": TRANSCRIBER_SHARED_SECRET },
-      maxBodyLength: Infinity,
-      timeout: 300000,
-      validateStatus: () => true,
-    });
-
-    try {
-      fs.unlinkSync(audioPath);
-    } catch {}
 
     if (r.status < 200 || r.status >= 300) {
-      const detail =
-        typeof r.data === "string" ? r.data : JSON.stringify(r.data);
-      console.error(`[youtube] transcriber error ${r.status}: ${detail}`);
-      return res.status(502).json({ error: `Transcriber ${r.status}`, detail });
-    }
-
-    const transcript = r.data?.text || r.data?.transcript || "";
-    if (!transcript) {
-      console.error("[youtube] transcriber returned no text field:", r.data);
+      console.error("[youtube] transcriber error", r.status, r.data);
       return res
         .status(502)
-        .json({ error: "Transcriber returned no transcript." });
+        .json({ error: "Transcriber failed", detail: r.data });
     }
 
-    const flashcards = []; // plug in generator later
+    const transcript = r.data?.text || "";
+    const flashcards = []; // plug in your generator as desired
     return res.json({ source: "youtube", transcript, flashcards });
   } catch (err) {
-    console.error("[youtube] failed:", err?.stack || err?.message || err);
-    try {
-      if (fs.existsSync(audioPath)) fs.unlinkSync(audioPath);
-    } catch {}
+    console.error("[youtube] failed:", err?.message || err);
     return res.status(500).json({ error: "Failed to process YouTube video." });
   }
 };
