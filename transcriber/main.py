@@ -4,6 +4,43 @@ from pydantic import BaseModel
 from faster_whisper import WhisperModel
 from yt_dlp import YoutubeDL
 
+# top of file
+import os, tempfile, subprocess
+from typing import List
+
+COOKIES_PATH = "/tmp/youtube_cookies.txt"
+
+def cookies_args() -> List[str]:
+    """
+    If YOUTUBE_COOKIES_TXT is present (Netscape format), write it to /tmp and
+    return yt-dlp --cookies args. Falls back to YOUTUBE_COOKIE header string if set.
+    """
+    txt = os.environ.get("YOUTUBE_COOKIES_TXT")
+    if txt:
+        # Write only if not already the same (reduce container fs churn)
+        try:
+            # ensure directory exists (it does on Render, but be safe)
+            os.makedirs(os.path.dirname(COOKIES_PATH), exist_ok=True)
+            # write file
+            with open(COOKIES_PATH, "w") as f:
+                f.write(txt)
+            return ["--cookies", COOKIES_PATH]
+        except Exception as e:
+            print("[cookies] failed to write cookies.txt:", repr(e))
+            # If writing fails, we intentionally do not fall back silently.
+            # It’s better to fail loudly so you notice.
+            return []
+    # Optional: fallback if you set YOUTUBE_COOKIE as a single header string.
+    hdr = os.environ.get("YOUTUBE_COOKIE")
+    if hdr:
+        return ["--add-header", f"Cookie: {hdr}"]
+    return []
+
+
+
+
+
+
 app = FastAPI()
 
 SECRET = os.getenv("TRANSCRIBER_SHARED_SECRET", "")
