@@ -77,13 +77,15 @@ async def transcribe(file: UploadFile = File(...), x_secret: str | None = Header
     return {"text": text}
 
 @app.post("/transcribe_url")
+@app.post("/transcribe_url")
 def transcribe_url(body: UrlBody, x_secret: str | None = Header(default=None)):
     verify(x_secret)
     url = body.url.strip()
     if not (url.startswith("http://") or url.startswith("https://")):
         raise HTTPException(status_code=400, detail="invalid url")
 
-        ydl_opts = {
+    # ---- build yt-dlp options once, outside try/except ----
+    ydl_opts = {
         "format": "bestaudio/best",
         "outtmpl": os.path.join(tempfile.gettempdir(), "audio.%(ext)s"),
         "noplaylist": True,
@@ -91,20 +93,86 @@ def transcribe_url(body: UrlBody, x_secret: str | None = Header(default=None)):
         "quiet": True,
         "no_warnings": True,
 
-        # Headers to look like a real browser
+        # Look like a real browser
         "http_headers": {
             "User-Agent": UA,
             "Referer": "https://www.youtube.com/",
             "Accept-Language": "en-US,en;q=0.9",
         },
 
-        # Key flags that matter for Render
-        "source_address": "0.0.0.0",  # same as --force-ipv4
-        "geo_bypass": True,           # same as --geo-bypass
+        # Prod quirks
+        "source_address": "0.0.0.0",          # == --force-ipv4
+        "geo_bypass": True,                   # == --geo-bypass
 
-        # Force yt-dlp to use a web client (try android below if 403)
+        # Prefer web player client first; we may retry with android below
         "extractor_args": {"youtube": {"player_client": ["web"]}},
     }
+
+    # Cookies (Netscape cookies.txt preferred)
+    cookiefile_path = None
+    if YOUTUBE_COOKIES_TXT:
+        cookiefile_path = os.path.join(tempfile.gettempdir(), "cookies.txt")
+        with open(cookiefile_path, "w") as f:
+            # handle escaped \n from env editors
+            f.write(YOUTUBE_COOKIES_TXT.replace("\\n", "\n"))
+        ydl_opts["cookiefile"] = cookiefile_path
+        print(f"[cookies] using cookiefile: {cookiefile_path}")
+    elif YOUTUBE_COOKIE:
+        ydl_opts.setdefault("http_headers", {})["Cookie"] = YOUTUBE_COOKIE
+        print(f"[cookies] using single Cookie header (len={len(YOUTUBE_COOKIE)})")
+    else:
+        print("[cookies] none provided")
+
+    try:
+        # Download with first config (web client)
+        with YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+
+        # Resolve output path
+        path = ydl.prepare_filename(info)
+        base, _ = os.path.splitext(path)
+        for ext in (".m4a", ".webm", ".opus", ".mp3"):
+            cand = base + ext
+            if os.path.exists(cand):
+                path = cand
+                break
+
+        # Transcribe
+        segments, _info = model.transcribe(path)
+        text = "".join(seg.text for seg in segments).strip()
+        return {"text": text}
+
+    except Exception as e:
+        msg = str(e)
+        # Retry once with android client if we hit a 403/Forbidden path
+        if "403" in msg or "Forbidden" in msg:
+            print("[yt-dlp] 403/Forbidden — retrying with android client")
+            ydl_opts_retry = dict(ydl_opts)
+            ydl_opts_retry["extractor_args"] = {"youtube": {"player_client": ["android"]}}
+            try:
+                with YoutubeDL(ydl_opts_retry) as ydl2:
+                    info = ydl2.extract_info(url, download=True)
+
+                path = ydl.prepare_filename(info)
+                base, _ = os.path.splitext(path)
+                for ext in (".m4a", ".webm", ".opus", ".mp3"):
+                    cand = base + ext
+                    if os.path.exists(cand):
+                        path = cand
+                        break
+
+                segments, _info = model.transcribe(path)
+                text = "".join(seg.text for seg in segments).strip()
+                return {"text": text}
+            except Exception as e2:
+                msg2 = str(e2)
+                print("yt-dlp/whisper failed after retry:", msg2)
+                raise HTTPException(status_code=500, detail={"stage": "yt-dlp/whisper", "error": msg2})
+
+        # Non-403 failures:
+        print("yt-dlp/whisper failed:", msg)
+        raise HTTPException(status_code=500, detail={"stage": "yt-dlp/whisper", "error": msg})
+
 
 
     cookiefile_path = None
