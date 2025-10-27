@@ -1,5 +1,11 @@
 require("dotenv").config();
 
+console.log("[env] TRANSCRIBER_URL =", process.env.TRANSCRIBER_URL);
+console.log(
+  "[env] TRANSCRIBER_SHARED_SECRET =",
+  (process.env.TRANSCRIBER_SHARED_SECRET || "").slice(0, 4) + "***"
+);
+
 const app = require("./app");
 const express = require("express");
 const PORT = process.env.PORT || 3001;

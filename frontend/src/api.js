@@ -14,6 +14,16 @@ function isLocalhost() {
   );
 }
 
+const FALLBACK_API = isLocalhost()
+  ? "http://localhost:3001"
+  : "https://notecrunch-backend.onrender.com";
+
+export const API_BASE = `${(
+  import.meta.env?.VITE_API_URL || FALLBACK_API
+).replace(/\/+$/, "")}/api`;
+console.log("[api] Using API_BASE:", API_BASE);
+
+//legacy function
 /* function resolveApiBase() {
   // Read Vite env at build time (preferred)
   const viteBase =
@@ -38,13 +48,13 @@ function isLocalhost() {
   return `${base}/api`;
 }*/
 
-const viteBase =
+/* const viteBase =
   (typeof import.meta !== "undefined" && import.meta?.env?.VITE_API_URL) ||
-  "https://notecrunch-backend.onrender.com"; // <- prod default
+  "https://notecrunch-backend.onrender.com"; // <- prod default */
 
 // ...then as before:
-const base = (viteBase || "http://localhost:3001").replace(/\/+$/, "");
-export const API_BASE = `${base}/api`;
+/* const base = (viteBase || "http://localhost:3001").replace(/\/+$/, "");
+export const API_BASE = `${base}/api`; */
 
 // Optional: log once so you can confirm in console on Vercel builds
 if (typeof window !== "undefined") {

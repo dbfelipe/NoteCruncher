@@ -94,6 +94,46 @@ app.get("/api/health/db", async (_req, res) => {
   }
 }); */
 
+// POST /api/videos/youtube  { url }
+app.post("/api/videos/youtube", async (req, res) => {
+  try {
+    const { url } = req.body ?? {};
+    if (!url) return res.status(400).json({ error: "url required" });
+
+    const transcriberUrl = `${process.env.TRANSCRIBER_URL}/transcribe_url`;
+    const secret = process.env.TRANSCRIBER_SHARED_SECRET;
+
+    // minimal visibility for debugging
+    console.log("[proxy] ->", transcriberUrl, "url:", url);
+    if (!secret)
+      return res
+        .status(500)
+        .json({ error: "missing TRANSCRIBER_SHARED_SECRET" });
+
+    const r = await fetch(transcriberUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Secret": secret,
+      },
+      body: JSON.stringify({ url }),
+      // optionally increase timeout by using an AbortController if needed
+    });
+
+    const text = await r.text();
+    if (!r.ok) {
+      console.error("[proxy] transcriber error", r.status, text);
+      return res
+        .status(502)
+        .json({ error: "Transcriber failed", detail: JSON.parse(text) });
+    }
+    res.type("application/json").send(text);
+  } catch (e) {
+    console.error("[proxy] exception", e);
+    res.status(500).json({ error: "proxy error", detail: String(e) });
+  }
+});
+
 // Error handler
 app.use((err, _req, res, _next) => {
   console.error(err.stack);

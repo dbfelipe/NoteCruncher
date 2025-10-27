@@ -65,6 +65,7 @@ def transcribe_url(body: UrlBody, x_secret: str | None = Header(default=None)):
             ydl_opts["cookiefile"] = cookiefile_path
         elif YOUTUBE_COOKIE:
             ydl_opts.setdefault("http_headers", {})["Cookie"] = YOUTUBE_COOKIE
+        print("yt-dlp using cookiefile:", ydl_opts.get("cookiefile"))
 
         with tempfile.TemporaryDirectory() as td:
             ydl_opts["outtmpl"] = os.path.join(td, "audio.%(ext)s")
@@ -83,5 +84,10 @@ def transcribe_url(body: UrlBody, x_secret: str | None = Header(default=None)):
             text = "".join(seg.text for seg in segments).strip()
             return {"text": text}
     except Exception as e:
-        print("yt-dlp/whisper failed:", repr(e))
-        raise HTTPException(status_code=500, detail="transcribe_url failed")
+        msg = repr(e)
+        print("yt-dlp/whisper failed:", msg)
+        raise HTTPException(
+            status_code=500,
+            detail={"stage": "yt-dlp/whisper", "error": msg}
+        )
+
