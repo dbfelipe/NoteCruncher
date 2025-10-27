@@ -83,15 +83,29 @@ def transcribe_url(body: UrlBody, x_secret: str | None = Header(default=None)):
     if not (url.startswith("http://") or url.startswith("https://")):
         raise HTTPException(status_code=400, detail="invalid url")
 
-    ydl_opts = {
+        ydl_opts = {
         "format": "bestaudio/best",
         "outtmpl": os.path.join(tempfile.gettempdir(), "audio.%(ext)s"),
         "noplaylist": True,
         "noprogress": True,
         "quiet": True,
         "no_warnings": True,
-        "http_headers": {"User-Agent": UA},
+
+        # Headers to look like a real browser
+        "http_headers": {
+            "User-Agent": UA,
+            "Referer": "https://www.youtube.com/",
+            "Accept-Language": "en-US,en;q=0.9",
+        },
+
+        # Key flags that matter for Render
+        "source_address": "0.0.0.0",  # same as --force-ipv4
+        "geo_bypass": True,           # same as --geo-bypass
+
+        # Force yt-dlp to use a web client (try android below if 403)
+        "extractor_args": {"youtube": {"player_client": ["web"]}},
     }
+
 
     cookiefile_path = None
     try:
@@ -107,8 +121,19 @@ def transcribe_url(body: UrlBody, x_secret: str | None = Header(default=None)):
         with tempfile.TemporaryDirectory() as td:
             ydl_opts["outtmpl"] = os.path.join(td, "audio.%(ext)s")
             with YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(url, download=True)
+                try:
+                    info = ydl.extract_info(url, download=True)
+                except Exception as e:
+                    msg = str(e)
+                    if "403" in msg or "Forbidden" in msg:
+                        print("[yt-dlp] 403 forbidden — retrying with android client")
+                        ydl_opts["extractor_args"] = {"youtube": {"player_client": ["android"]}}
+                        with YoutubeDL(ydl_opts) as ydl2:
+                            info = ydl2.extract_info(url, download=True)
+                    else:
+                        raise
                 path = ydl.prepare_filename(info)
+
             # resolve actual file ext
             base, _ = os.path.splitext(path)
             for ext in (".m4a", ".webm", ".opus", ".mp3"):
