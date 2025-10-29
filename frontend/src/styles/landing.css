@@ -1,0 +1,139 @@
+/* Background grid + accent glows */
+.nc-landing {
+  position: relative;
+  isolation: isolate;
+  background: var(--bg);
+}
+
+/* Soft vignette so center content pops */
+.nc-landing::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+      1200px 600px at 80% -10%,
+      color-mix(in oklab, var(--accent) 35%, transparent) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      900px 500px at -10% 70%,
+      color-mix(in oklab, var(--accent-strong) 20%, transparent) 0%,
+      transparent 60%
+    );
+  z-index: -1;
+}
+
+/* Subtle grid overlay */
+.nc-grid {
+  position: absolute;
+  inset: -1px; /* hide border gaps */
+  background-image: linear-gradient(
+      to right,
+      color-mix(in oklab, var(--border) 40%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--border) 40%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: 40px 40px;
+  mask-image: radial-gradient(
+    1000px 600px at 50% 30%,
+    #000 60%,
+    transparent 100%
+  );
+  opacity: 0.35;
+  z-index: -1;
+}
+
+/* Glass card */
+.nc-card {
+  background: color-mix(in oklab, var(--surface) 85%, transparent);
+  border: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 20px;
+}
+
+/* Buttons */
+.nc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease,
+    border-color 120ms ease;
+}
+.nc-btn:hover {
+  transform: translateY(-1px);
+  background: var(--surface-2);
+}
+
+.nc-btn--primary {
+  background: linear-gradient(
+    135deg,
+    var(--accent) 0%,
+    var(--accent-strong) 100%
+  );
+  color: var(--ink);
+  border-color: color-mix(in oklab, var(--accent-hover) 60%, transparent);
+}
+.nc-btn--primary:hover {
+  background: linear-gradient(
+    135deg,
+    var(--accent-hover) 0%,
+    var(--accent-strong) 100%
+  );
+}
+
+/* Gradient headline text */
+.nc-gradient-text {
+  background: linear-gradient(
+    90deg,
+    var(--cream-2),
+    var(--accent),
+    var(--accent-strong)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+/* Animated background orbs */
+.nc-orb {
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  border-radius: 50%;
+  filter: blur(160px);
+  opacity: 0.25;
+  mix-blend-mode: screen;
+  animation: float 24s ease-in-out infinite;
+  z-index: -2;
+}
+
+/* Simple floating keyframes */
+@keyframes float {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(60px, -30px) scale(1.1);
+  }
+  50% {
+    transform: translate(-40px, 40px) scale(0.95);
+  }
+  75% {
+    transform: translate(30px, -50px) scale(1.05);
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+}
